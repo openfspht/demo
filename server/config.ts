@@ -1,5 +1,5 @@
 export interface ShopConfig {
-  gatewayUrl: string
+  baseUrl: string
   allowPlainHttp: boolean
   apiKey: string
   webhookUrl: string
@@ -15,10 +15,10 @@ export function readConfig(
   const apiKey = environment.OPENFSP_API_KEY
   if (!apiKey)
     throw new Error(
-      "OPENFSP_API_KEY is required: use the key the gateway prints on its first start"
+      "OPENFSP_API_KEY is required: use the API key of your OpenFSP server"
     )
   return {
-    gatewayUrl: environment.OPENFSP_GATEWAY_URL ?? "http://127.0.0.1:8080",
+    baseUrl: environment.OPENFSP_BASE_URL ?? "http://127.0.0.1:8080",
     allowPlainHttp: environment.OPENFSP_ALLOW_PLAIN_HTTP === "true",
     apiKey,
     webhookUrl:

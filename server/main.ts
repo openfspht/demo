@@ -10,7 +10,7 @@ import { routes } from "./http/routes"
 import {
   InMemoryOrders,
   InMemoryProcessedEvents,
-  OpenFspPaymentGateway,
+  OpenFspPaymentApi,
   SignedWebhooks,
   systemClock,
 } from "./infrastructure/adapters"
@@ -18,13 +18,13 @@ import {
 const config = readConfig(process.env)
 const orders = new InMemoryOrders()
 const openfsp = new OpenFsp({
-  baseUrl: config.gatewayUrl,
+  baseUrl: config.baseUrl,
   apiKey: config.apiKey,
   webhookUrl: config.webhookUrl,
   allowPlainHttp: config.allowPlainHttp,
 })
-const gateway = new OpenFspPaymentGateway(openfsp)
-const checkout = new Checkout(catalog, gateway, orders, systemClock, {
+const paymentApi = new OpenFspPaymentApi(openfsp)
+const checkout = new Checkout(catalog, paymentApi, orders, systemClock, {
   providers: config.providers,
   publicUrl: config.publicUrl,
 })
@@ -32,7 +32,7 @@ const receiver = new WebhookReceiver(
   new SignedWebhooks(openfsp),
   orders,
   new InMemoryProcessedEvents(),
-  gateway,
+  paymentApi,
   systemClock
 )
 const dist = join(import.meta.dir, "..", "dist")
@@ -52,5 +52,5 @@ Bun.serve({
 })
 
 console.info(
-  `Demo shop on http://${config.host}:${config.port}, payments through ${config.gatewayUrl} with ${config.providers?.join(", ") ?? "every provider it offers"}`
+  `Demo shop on http://${config.host}:${config.port}, payments through ${config.baseUrl} with ${config.providers?.join(", ") ?? "every provider it offers"}`
 )

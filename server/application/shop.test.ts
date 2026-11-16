@@ -14,7 +14,7 @@ import {
   InMemoryProcessedEvents,
 } from "../infrastructure/adapters"
 import { Checkout, InvalidOrder } from "./checkout"
-import type { Authenticity, PaymentGateway, WebhookAuthenticity } from "./ports"
+import type { Authenticity, PaymentApi, WebhookAuthenticity } from "./ports"
 import { WebhookReceiver } from "./webhook-receiver"
 
 const clock = { now: () => new Date("2026-11-09T15:00:00Z") }
@@ -29,7 +29,6 @@ function payment(
     status,
     amount: Money.htg(1250),
     provider: "mock_alpha",
-    providerOrderId: "order",
     nextAction: { type: "payer_approval" },
     createdAt: new Date("2026-11-09T15:00:00Z"),
     updatedAt: new Date("2026-11-09T15:00:00Z"),
@@ -37,7 +36,7 @@ function payment(
   })
 }
 
-const gateway: PaymentGateway = {
+const paymentApi: PaymentApi = {
   createPayment: async () => payment(),
   getPayment: async () => payment("succeeded"),
   findPayment: async () => undefined,
@@ -79,9 +78,9 @@ class ScriptedAuthenticity implements WebhookAuthenticity {
   }
 }
 
-function setUp(paymentGateway: PaymentGateway = gateway) {
+function setUp(api: PaymentApi = paymentApi) {
   const orders = new InMemoryOrders()
-  const checkout = new Checkout(catalog, paymentGateway, orders, clock, {
+  const checkout = new Checkout(catalog, api, orders, clock, {
     providers: ["mock_alpha"],
     publicUrl: "https://shop.example",
   })
@@ -90,7 +89,7 @@ function setUp(paymentGateway: PaymentGateway = gateway) {
     authenticity,
     orders,
     new InMemoryProcessedEvents(),
-    paymentGateway,
+    api,
     clock
   )
   const deliver = async (verified: PaymentEvent) => {
@@ -101,14 +100,20 @@ function setUp(paymentGateway: PaymentGateway = gateway) {
 }
 
 describe("checkout", () => {
-  test("offers the providers of the gateway, narrowed by the configuration", async () => {
+  test("offers the providers of the server, narrowed by the configuration", async () => {
     const { checkout } = setUp()
     expect(await checkout.providers()).toEqual([
       { id: "mock_alpha", name: "Alpha (mock)", logo_url: null },
     ])
-    const open = new Checkout(catalog, gateway, new InMemoryOrders(), clock, {
-      publicUrl: "https://shop.example",
-    })
+    const open = new Checkout(
+      catalog,
+      paymentApi,
+      new InMemoryOrders(),
+      clock,
+      {
+        publicUrl: "https://shop.example",
+      }
+    )
     expect((await open.providers()).map((provider) => provider.id)).toEqual([
       "mock_alpha",
       "mock_beta",
@@ -131,10 +136,10 @@ describe("checkout", () => {
     expect(checkout.list()).toHaveLength(1)
   })
 
-  test("sends an eight-digit phone number to the gateway in E.164", async () => {
+  test("sends an eight-digit phone number to the server in E.164", async () => {
     let sent: string | undefined
-    const recording: PaymentGateway = {
-      ...gateway,
+    const recording: PaymentApi = {
+      ...paymentApi,
       createPayment: async (request) => {
         sent = request.payerPhoneNumber
         return payment()
@@ -186,10 +191,10 @@ describe("checkout", () => {
       expect(reference).toMatch(/^SHOP-[0-9A-F]{12}$/)
   })
 
-  test("saves the order with its idempotency key before calling the gateway", async () => {
+  test("saves the order with its idempotency key before calling the server", async () => {
     let seen: { key: string; saved?: string } | undefined
     const { checkout, orders } = setUp({
-      ...gateway,
+      ...paymentApi,
       createPayment: async (request, idempotencyKey) => {
         seen = {
           key: idempotencyKey,
@@ -208,11 +213,11 @@ describe("checkout", () => {
     expect(order.payment_id).toBe("pay_1")
   })
 
-  test("forgets an order the gateway refused without effect and keeps one whose outcome is unknown", async () => {
+  test("forgets an order the paymentApi refused without effect and keeps one whose outcome is unknown", async () => {
     let effect: "none" | "unknown" = "none"
     let found: Payment | undefined = undefined
     const { checkout, orders } = setUp({
-      ...gateway,
+      ...paymentApi,
       createPayment: async () => {
         throw new ApiError({
           status: effect === "none" ? 422 : 502,
@@ -240,7 +245,7 @@ describe("checkout", () => {
     expect(resolved).toMatchObject({ status: "succeeded", payment_id: "pay_1" })
   })
 
-  test("reads the order status from the gateway on return", async () => {
+  test("reads the order status from the paymentApi on return", async () => {
     const { checkout } = setUp()
     const order = await checkout.place(
       [
@@ -304,10 +309,10 @@ describe("webhook receiver", () => {
     expect(orders.find(reference)?.status).toBe("pending")
   })
 
-  test("re-reads the payment from the gateway instead of leaving a terminal state", async () => {
+  test("re-reads the payment from the paymentApi instead of leaving a terminal state", async () => {
     const reads: string[] = []
     const { checkout, deliver, orders } = setUp({
-      ...gateway,
+      ...paymentApi,
       getPayment: async (id) => {
         reads.push(id)
         return payment("succeeded")
@@ -328,10 +333,10 @@ describe("webhook receiver", () => {
     expect(orders.find(reference)?.status).toBe("succeeded")
   })
 
-  test("re-reads the payment from the gateway when the sequence skips ahead", async () => {
+  test("re-reads the payment from the paymentApi when the sequence skips ahead", async () => {
     const reads: string[] = []
     const { checkout, deliver, orders } = setUp({
-      ...gateway,
+      ...paymentApi,
       getPayment: async (id) => {
         reads.push(id)
         return payment("expired")
@@ -353,13 +358,13 @@ describe("webhook receiver", () => {
     })
   })
 
-  test("applies an event delivered before the gateway answers the creation", async () => {
+  test("applies an event delivered before the paymentApi answers the creation", async () => {
     let early: Awaited<ReturnType<WebhookReceiver["receive"]>> | undefined
     const context: {
       deliver?: (event: PaymentEvent) => ReturnType<WebhookReceiver["receive"]>
     } = {}
     const { checkout, deliver, orders } = setUp({
-      ...gateway,
+      ...paymentApi,
       createPayment: async (request) => {
         early = await context.deliver!(event(1, "succeeded", request.reference))
         return payment("pending", request.reference)
@@ -377,11 +382,11 @@ describe("webhook receiver", () => {
   })
 
   test("remembers an event only once it has been applied", async () => {
-    let gatewayDown = true
+    let serverDown = true
     const { checkout, deliver, orders } = setUp({
-      ...gateway,
+      ...paymentApi,
       getPayment: async () => {
-        if (gatewayDown) throw new Error("gateway unavailable")
+        if (serverDown) throw new Error("paymentApi unavailable")
         return payment("succeeded")
       },
     })
@@ -391,9 +396,9 @@ describe("webhook receiver", () => {
       "mock_alpha"
     )
     await expect(deliver(event(2, "succeeded", reference))).rejects.toThrow(
-      "gateway unavailable"
+      "paymentApi unavailable"
     )
-    gatewayDown = false
+    serverDown = false
     expect(await deliver(event(2, "succeeded", reference))).toMatchObject({
       outcome: "gap",
     })

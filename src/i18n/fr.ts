@@ -48,10 +48,9 @@ export const fr: Messages = {
     pay: (total: string) => `Payer ${total}`,
     paying: "Création du paiement",
     secured:
-      "Paiement par la passerelle OpenFSP de la boutique. Le statut vient de la passerelle, jamais du lien de retour.",
-    noProvider:
-      "La passerelle ne propose aucun moyen de paiement pour l'instant.",
-    unreachable: "La boutique n'arrive pas à joindre la passerelle.",
+      "Paiement par OpenFSP. Le statut vient du serveur de paiement, jamais du lien de retour.",
+    noProvider: "Aucun moyen de paiement n'est disponible pour l'instant.",
+    unreachable: "La boutique n'arrive pas à joindre le serveur de paiement.",
   },
   order: {
     title: (reference: string) => `Commande ${reference}`,
@@ -78,7 +77,7 @@ export const fr: Messages = {
     webhooksHint:
       "Chaque changement de statut accepté par la boutique portait une signature qu'elle a vérifiée.",
     noWebhooks: "Aucun webhook reçu pour l'instant.",
-    source: "Statut lu auprès de la passerelle.",
+    source: "Statut lu auprès du serveur de paiement.",
     notFound: "Aucune commande avec cette référence.",
   },
   orders: {

@@ -78,7 +78,7 @@ export function routes(
         }
         if (reception.outcome === "terminal")
           console.warn(
-            `${reception.summary} would leave a terminal state, re-read the payment from the gateway`
+            `${reception.summary} would leave a terminal state, re-read the payment from the server`
           )
         else console.info(`${reception.summary}: ${reception.outcome}`)
         return new Response(null, { status: 204 })

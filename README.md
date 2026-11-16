@@ -14,18 +14,18 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-0B3B36" alt="Apache-2.0"></a>
 </p>
 
-A catalogue, a checkout that creates OpenFSP payments and a receiver for signed webhooks, against an
-[OpenFSP gateway](https://github.com/openfspht/openfsp). Orders live in memory and disappear on restart.
+A merchant built on the OpenFSP TypeScript SDK: a catalogue, a checkout that creates OpenFSP payments and a receiver
+for signed webhooks. It works with any OpenFSP server. Orders live in memory and disappear on restart.
 
 ## Run it
 
-With the gateway demo from [openfspht/openfsp](https://github.com/openfspht/openfsp), which pulls this image:
+With the demo from [openfspht/openfsp](https://github.com/openfspht/openfsp), which pulls this image:
 
 ```sh
 docker compose --profile demo up    # in the openfsp repository, shop on http://localhost:3000
 ```
 
-From source, with Bun and a gateway on `127.0.0.1:8080`:
+From source, with Bun and an OpenFSP server on `127.0.0.1:8080`:
 
 ```sh
 git clone --recurse-submodules git@github.com:openfspht/demo-shop.git
@@ -39,9 +39,9 @@ The SDK comes from the `openfsp` submodule until it is on npm: `git submodule up
 | Variable | Default |
 |---|---|
 | `OPENFSP_API_KEY` | required |
-| `OPENFSP_GATEWAY_URL` | `http://127.0.0.1:8080` |
+| `OPENFSP_BASE_URL` | `http://127.0.0.1:8080` |
 | `OPENFSP_ALLOW_PLAIN_HTTP` | `false` |
-| `OPENFSP_PROVIDERS` | every provider the gateway offers |
+| `OPENFSP_PROVIDERS` | every provider the server offers |
 | `SHOP_WEBHOOK_URL` | `http://127.0.0.1:3000/webhooks/openfsp` |
 | `SHOP_PUBLIC_URL` | `http://localhost:5174` |
 | `HOST` | `127.0.0.1`, `0.0.0.0` in the image |

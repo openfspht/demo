@@ -7,7 +7,7 @@ import type {
 
 import type { Order } from "../domain/order"
 
-export interface PaymentGateway {
+export interface PaymentApi {
   createPayment(
     request: PaymentRequest,
     idempotencyKey: string

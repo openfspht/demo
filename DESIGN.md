@@ -1,6 +1,6 @@
 ---
 name: OpenFSP Demo Shop
-description: A fictional Haitian fine grocery built by hand like a Jacmel carnival float, paying through the OpenFSP gateway.
+description: A fictional Haitian fine grocery built by hand like a Jacmel carnival float, paying through OpenFSP.
 colors:
   mango: "#f08a24"
   mango-ink: "#4a2306"
@@ -140,7 +140,7 @@ The shop is built by hand like a Jacmel carnival float. Every product is a paint
 
 Density is moderate and market-like. Product stalls stagger and tilt; the checkout reads as a short row of ordered stations; prices are set in the display face with tabular numerals so a column of HTG amounts always lines up. Colour comes from five paints that each own an aisle, and ink-black text carries every reading surface.
 
-This world belongs to the shop alone. It shares no visual tokens with the OpenFSP gateway console; only locale, theme switching, money formatting and the status indicator come from the shared design system.
+This world belongs to the shop alone. It shares no visual tokens with the OpenFSP console; only locale, theme switching, money formatting and the status indicator come from the OpenFSP design system.
 
 **Key Characteristics:**
 - Five paints (mango, sea, hibiscus, leaf, sun) on a newsprint ground, each paint paired with its own ink.
@@ -261,7 +261,7 @@ A square field of the product's aisle paint (2:1 when wide) holding a flat paint
 A newsprint slip with flat bottom corners closed by a torn edge, line items in a flex list, the total above a dashed seam.
 
 ### Status Stamp
-A tilted (-1deg) paint plate whose colour follows the gateway status: sun pending, leaf succeeded, hibiscus failed, expired or canceled. It always ends with a line naming the status source.
+A tilted (-1deg) paint plate whose colour follows the payment status: sun pending, leaf succeeded, hibiscus failed, expired or canceled. It always ends with a line naming the status source.
 
 ### Inputs / Fields
 - **Style:** newsprint fill, 2px ink border, 4px radius, 2.9rem height, hibiscus caret; label 600 at 0.92rem above, soft-ink hint below.
@@ -287,7 +287,7 @@ Checkout progress as numbered near-circle dots: next is soft ink with a ring, cu
 ### Don't:
 - **Don't** build product grids of equal white cards or use product photography.
 - **Don't** render product objects as raster papier-mache; flat painted vectors are the chosen medium.
-- **Don't** borrow the gateway console's tokens, components or look; only the shared providers, money formatter and status indicator cross over.
+- **Don't** borrow the console's tokens, components or look; only the shared providers, money formatter and status indicator cross over.
 - **Don't** set body-size or small text on hibiscus or leaf fields in light theme.
 - **Don't** use uppercase eyebrows, kickers or tracked labels in the interface.
 - **Don't** use hard offset shadows or glows; depth is paste and lift.

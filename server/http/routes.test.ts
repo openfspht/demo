@@ -2,7 +2,7 @@ import { afterAll, describe, expect, test } from "bun:test"
 import { Money, Payment } from "@openfsp/sdk"
 
 import { Checkout } from "../application/checkout"
-import type { PaymentGateway, WebhookAuthenticity } from "../application/ports"
+import type { PaymentApi, WebhookAuthenticity } from "../application/ports"
 import { WebhookReceiver } from "../application/webhook-receiver"
 import { catalog } from "../domain/catalog"
 import {
@@ -13,7 +13,7 @@ import { routes } from "./routes"
 
 const clock = { now: () => new Date("2026-11-09T15:00:00Z") }
 
-const gateway: PaymentGateway = {
+const paymentApi: PaymentApi = {
   createPayment: async (request) =>
     new Payment({
       id: `pay_${request.reference}`,
@@ -21,7 +21,6 @@ const gateway: PaymentGateway = {
       status: "pending",
       amount: Money.htg(1250),
       provider: "mock_alpha",
-      providerOrderId: "order",
       nextAction: { type: "payer_approval" },
       createdAt: clock.now(),
       updatedAt: clock.now(),
@@ -43,14 +42,14 @@ const server = Bun.serve({
   port: 0,
   hostname: "127.0.0.1",
   routes: routes(
-    new Checkout(catalog, gateway, orders, clock, {
+    new Checkout(catalog, paymentApi, orders, clock, {
       publicUrl: "https://shop.example",
     }),
     new WebhookReceiver(
       unsigned,
       orders,
       new InMemoryProcessedEvents(),
-      gateway,
+      paymentApi,
       clock
     )
   ),

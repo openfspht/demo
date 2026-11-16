@@ -6,7 +6,7 @@ import {
   syncWithPayment,
   type Order,
 } from "../domain/order"
-import type { Clock, Orders, PaymentGateway } from "./ports"
+import type { Clock, Orders, PaymentApi } from "./ports"
 
 const MAX_QUANTITY = 20
 const MAX_DESCRIPTION = 200
@@ -29,20 +29,20 @@ export interface CheckoutSettings {
 
 export class Checkout {
   private readonly catalog: Product[]
-  private readonly gateway: PaymentGateway
+  private readonly paymentApi: PaymentApi
   private readonly orders: Orders
   private readonly clock: Clock
   private readonly settings: CheckoutSettings
 
   constructor(
     catalog: Product[],
-    gateway: PaymentGateway,
+    paymentApi: PaymentApi,
     orders: Orders,
     clock: Clock,
     settings: CheckoutSettings
   ) {
     this.catalog = catalog
-    this.gateway = gateway
+    this.paymentApi = paymentApi
     this.orders = orders
     this.clock = clock
     this.settings = settings
@@ -53,7 +53,7 @@ export class Checkout {
   }
 
   async providers(): Promise<ShopProvider[]> {
-    const offered = await this.gateway.providers()
+    const offered = await this.paymentApi.providers()
     return offered
       .filter(
         (provider) =>
@@ -147,8 +147,8 @@ export class Checkout {
     const order = this.orders.find(reference)
     if (!order) throw new UnknownOrder(reference)
     const payment = order.payment_id
-      ? await this.gateway.getPayment(order.payment_id)
-      : await this.gateway.findPayment(reference)
+      ? await this.paymentApi.getPayment(order.payment_id)
+      : await this.paymentApi.findPayment(reference)
     if (!payment) return order
     const current = syncWithPayment(order, payment)
     this.orders.save(current)
@@ -164,7 +164,7 @@ export class Checkout {
 
   private async createPayment(order: Order, request: PaymentRequest) {
     try {
-      return await this.gateway.createPayment(request, order.idempotency_key)
+      return await this.paymentApi.createPayment(request, order.idempotency_key)
     } catch (failure) {
       if (failure instanceof ApiError && failure.effect === "none")
         this.orders.remove(order.reference)

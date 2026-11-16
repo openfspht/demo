@@ -9,12 +9,12 @@ import type {
   Authenticity,
   Clock,
   Orders,
-  PaymentGateway,
+  PaymentApi,
   ProcessedEvents,
   WebhookAuthenticity,
 } from "../application/ports"
 
-export class OpenFspPaymentGateway implements PaymentGateway {
+export class OpenFspPaymentApi implements PaymentApi {
   private readonly openfsp: OpenFsp
 
   constructor(openfsp: OpenFsp) {

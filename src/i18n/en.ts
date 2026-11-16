@@ -46,9 +46,9 @@ export const en = {
     pay: (total: string) => `Pay ${total}`,
     paying: "Creating the payment",
     secured:
-      "Payment through the shop's OpenFSP gateway. The status comes from the gateway, never from the link you come back with.",
-    noProvider: "The gateway offers no payment provider right now.",
-    unreachable: "The shop cannot reach the gateway.",
+      "Payment through OpenFSP. The status comes from the payment server, never from the link you come back with.",
+    noProvider: "No payment provider is available right now.",
+    unreachable: "The shop cannot reach the payment server.",
   },
   order: {
     title: (reference: string) => `Order ${reference}`,
@@ -74,7 +74,7 @@ export const en = {
     webhooksHint:
       "Each status change the shop accepted came with a signature it checked.",
     noWebhooks: "No webhook received yet.",
-    source: "Status read from the gateway.",
+    source: "Status read from the payment server.",
     notFound: "No order with this reference.",
   },
   orders: {

@@ -15,7 +15,7 @@ describe("toE164", () => {
     expect(toE164("+15145550100")).toBe("+15145550100")
   })
 
-  test("leaves anything else for the gateway to reject", () => {
+  test("leaves anything else for the server to reject", () => {
     expect(toE164("1234")).toBe("1234")
     expect(toE164("050934567890")).toBe("050934567890")
   })

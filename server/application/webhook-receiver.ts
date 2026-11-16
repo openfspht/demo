@@ -9,7 +9,7 @@ import {
 import type {
   Clock,
   Orders,
-  PaymentGateway,
+  PaymentApi,
   ProcessedEvents,
   WebhookAuthenticity,
 } from "./ports"
@@ -26,20 +26,20 @@ export class WebhookReceiver {
   private readonly authenticity: WebhookAuthenticity
   private readonly orders: Orders
   private readonly processed: ProcessedEvents
-  private readonly gateway: PaymentGateway
+  private readonly paymentApi: PaymentApi
   private readonly clock: Clock
 
   constructor(
     authenticity: WebhookAuthenticity,
     orders: Orders,
     processed: ProcessedEvents,
-    gateway: PaymentGateway,
+    paymentApi: PaymentApi,
     clock: Clock
   ) {
     this.authenticity = authenticity
     this.orders = orders
     this.processed = processed
-    this.gateway = gateway
+    this.paymentApi = paymentApi
     this.clock = clock
   }
 
@@ -69,7 +69,7 @@ export class WebhookReceiver {
     const updated = RESYNC_OUTCOMES.has(outcome)
       ? syncWithPayment(
           applied,
-          await this.gateway.getPayment(order.payment_id)
+          await this.paymentApi.getPayment(order.payment_id)
         )
       : applied
     this.orders.save(updated)
