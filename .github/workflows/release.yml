@@ -38,7 +38,7 @@ jobs:
         with:
           images: |
             ghcr.io/${{ github.repository }}
-            docker.io/openfsp/demo-shop
+            docker.io/openfsp/demo
           tags: |
             type=semver,pattern={{version}},value=${{ inputs.tag }}
             type=semver,pattern={{major}}.{{minor}},value=${{ inputs.tag }}
@@ -68,6 +68,6 @@ jobs:
             gh release view "$TAG" --repo "$REPO" --json body --jq .body
             printf '\n## Image\n\n'
             printf -- "- \`ghcr.io/%s:%s\`\n" "$REPO" "${TAG#v}"
-            printf -- "- \`docker.io/openfsp/demo-shop:%s\`\n" "${TAG#v}"
+            printf -- "- \`docker.io/openfsp/demo:%s\`\n" "${TAG#v}"
           } > notes.md
           gh release edit "$TAG" --repo "$REPO" --notes-file notes.md

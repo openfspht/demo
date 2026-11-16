@@ -10,7 +10,7 @@
 <p align="center"><b>Mache Lakou, a demo merchant built on the OpenFSP TypeScript SDK</b></p>
 
 <p align="center">
-  <a href="https://github.com/openfspht/demo-shop/actions/workflows/ci.yml"><img src="https://github.com/openfspht/demo-shop/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/openfspht/demo/actions/workflows/ci.yml"><img src="https://github.com/openfspht/demo/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-0B3B36" alt="Apache-2.0"></a>
 </p>
 
@@ -28,7 +28,7 @@ docker compose --profile demo up    # in the openfsp repository, shop on http://
 From source, with Bun and an OpenFSP server on `127.0.0.1:8080`:
 
 ```sh
-git clone --recurse-submodules git@github.com:openfspht/demo-shop.git
+git clone --recurse-submodules git@github.com:openfspht/demo.git
 bun install
 OPENFSP_API_KEY=... bun run dev     # http://localhost:5174
 bun run check && bun run test
@@ -47,7 +47,7 @@ The SDK comes from the `openfsp` submodule until it is on npm: `git submodule up
 | `HOST` | `127.0.0.1`, `0.0.0.0` in the image |
 | `PORT` | `3000` |
 
-The image is published on GHCR (`ghcr.io/openfspht/demo-shop`) and Docker Hub (`openfsp/demo-shop`).
+The image is published on GHCR (`ghcr.io/openfspht/demo`) and Docker Hub (`openfsp/demo`).
 
 ## Who sees an order
 

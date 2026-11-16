@@ -43,10 +43,10 @@ jobs:
           persist-credentials: false
           submodules: true
       - name: build
-        run: docker build -t demo-shop:ci .
+        run: docker build -t demo:ci .
       - name: smoke test
         run: |
-          docker run -d -p 3000:3000 -e OPENFSP_API_KEY=ci demo-shop:ci
+          docker run -d -p 3000:3000 -e OPENFSP_API_KEY=ci demo:ci
           for _ in $(seq 1 20); do
             curl -sf http://localhost:3000/ > /dev/null && break
             sleep 0.5
