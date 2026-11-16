@@ -1,0 +1,14 @@
+**/node_modules
+**/dist
+**/*.tsbuildinfo
+.git
+.github
+openfsp/*
+!openfsp/sdks
+openfsp/sdks/*
+!openfsp/sdks/typescript
+openfsp/sdks/typescript/*
+!openfsp/sdks/typescript/package.json
+!openfsp/sdks/typescript/src
+.env
+.env.*
