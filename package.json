@@ -1,0 +1,46 @@
+{
+  "name": "demo-shop",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "imports": {
+    "#shared/*": "./shared/*.ts"
+  },
+  "scripts": {
+    "dev": "bun scripts/dev.ts",
+    "build": "tsc -b && vite build",
+    "start": "bun --conditions=openfsp-source server/main.ts",
+    "check": "tsc -b --noEmit && eslint && prettier --check .",
+    "format": "prettier --write .",
+    "test": "bun test --conditions=openfsp-source ./server ./shared"
+  },
+  "dependencies": {
+    "@fontsource-variable/bricolage-grotesque": "5.3.0",
+    "@fontsource-variable/inter": "^5.3.0",
+    "@openfsp/sdk": "file:./openfsp/sdks/typescript",
+    "@tanstack/react-query": "^5.107.1",
+    "cn": "^0.5.2",
+    "lucide-react": "^1.70.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "react-router": "^8.5.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10",
+    "@tailwindcss/vite": "^4",
+    "@types/bun": "^1.4.4",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^6",
+    "eslint": "^10",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.7",
+    "globals": "^17",
+    "prettier": "^3.9.10",
+    "tailwindcss": "^4",
+    "typescript": "~6.0.2",
+    "typescript-eslint": "^8",
+    "vite": "^8"
+  },
+  "packageManager": "bun@1.4.2"
+}
