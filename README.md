@@ -7,25 +7,26 @@
   </a>
 </p>
 
-<p align="center"><b>Mache Lakou, a demo merchant built on the OpenFSP TypeScript SDK</b></p>
+<p align="center"><b>Mache Lakou, a demonstration merchant application using OpenFSP</b></p>
 
 <p align="center">
   <a href="https://github.com/openfspht/demo/actions/workflows/ci.yml"><img src="https://github.com/openfspht/demo/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-0B3B36" alt="Apache-2.0"></a>
 </p>
 
-A merchant built on the OpenFSP TypeScript SDK: a catalogue, a checkout that creates OpenFSP payments and a receiver
-for signed webhooks. It works with any OpenFSP server. Orders live in memory and disappear on restart.
+Mache Lakou demonstrates merchant integration with OpenFSP through a product catalogue, a checkout that creates
+payments and a receiver for signed webhook events. It uses an OpenFSP client SDK and connects to a server exposing the
+required OpenFSP capabilities. Orders are stored in memory and are discarded when the application restarts.
 
 ## Run it
 
-With the demo from [openfspht/openfsp](https://github.com/openfspht/openfsp), which pulls this image:
+To run the demonstration environment from [openfspht/openfsp](https://github.com/openfspht/openfsp), which retrieves the shop image:
 
 ```sh
 docker compose --profile demo up    # in the openfsp repository, shop on http://localhost:3000
 ```
 
-From source, with Bun and an OpenFSP server on `127.0.0.1:8080`:
+To run from source, use Bun and an OpenFSP server at `127.0.0.1:8080`:
 
 ```sh
 git clone --recurse-submodules git@github.com:openfspht/demo.git
@@ -34,14 +35,14 @@ OPENFSP_API_KEY=... bun run dev     # http://localhost:5174
 bun run check && bun run test
 ```
 
-The SDK comes from the `openfsp` submodule until it is on npm: `git submodule update --remote openfsp` takes the latest.
+This checkout obtains the SDK from the `openfsp` submodule. Run `git submodule update --remote openfsp` to update it to the latest revision tracked by the submodule.
 
 | Variable | Default |
 |---|---|
 | `OPENFSP_API_KEY` | required |
 | `OPENFSP_BASE_URL` | `http://127.0.0.1:8080` |
 | `OPENFSP_ALLOW_PLAIN_HTTP` | `false` |
-| `OPENFSP_PROVIDERS` | every provider the server offers |
+| `OPENFSP_PROVIDERS` | all payment services exposed by the server |
 | `SHOP_WEBHOOK_URL` | `http://127.0.0.1:3000/webhooks/openfsp` |
 | `SHOP_PUBLIC_URL` | `http://localhost:5174` |
 | `HOST` | `127.0.0.1`, `0.0.0.0` in the image |
@@ -51,13 +52,13 @@ The image is published on GHCR (`ghcr.io/openfspht/demo`) and Docker Hub (`openf
 
 ## Who sees an order
 
-The shop has no accounts. The first order a browser places sets an `HttpOnly` `shop_session` cookie, and
-`GET /api/orders` lists only the orders placed under that cookie. `GET /api/orders/:reference` answers anyone who
-holds the reference, which is random and plays the role of a bearer link, so the payer can come back from the provider
-in another browser.
+The demonstration shop does not use customer accounts. The first order placed from a browser sets an `HttpOnly`
+`shop_session` cookie. `GET /api/orders` lists only orders associated with that cookie. `GET /api/orders/:reference`
+is accessible to anyone holding the randomly generated reference, which acts as a bearer link. This allows a payer
+returning from a payment service to access the order in another browser.
 
-The server listens on loopback by default. The image sets `HOST=0.0.0.0` so a compose stack can reach it: keep that
-port off the public internet.
+The server binds to the loopback interface by default. The image sets `HOST=0.0.0.0` to allow access from the Compose
+stack. Do not expose this port to the public internet.
 
 ## License
 
