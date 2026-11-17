@@ -9,16 +9,16 @@ import { OrdersPage } from "@/features/orders/orders-page"
 import { ShopFrame } from "@/features/shell/shop-frame"
 
 export const router = createBrowserRouter([
-  {
-    element: <ShopFrame />,
-    children: [
-      { index: true, element: <HomePage /> },
-      { path: "products/:id", element: <ProductPage /> },
-      { path: "cart", element: <CartPage /> },
-      { path: "checkout", element: <CheckoutPage /> },
-      { path: "orders", element: <OrdersPage /> },
-      { path: "orders/:reference", element: <OrderPage /> },
-      { path: "*", element: <Navigate replace to="/" /> },
-    ],
-  },
+    {
+        element: <ShopFrame />,
+        children: [
+            { index: true, element: <HomePage /> },
+            { path: "products/:id", element: <ProductPage /> },
+            { path: "cart", element: <CartPage /> },
+            { path: "checkout", element: <CheckoutPage /> },
+            { path: "orders", element: <OrdersPage /> },
+            { path: "orders/:reference", element: <OrderPage /> },
+            { path: "*", element: <Navigate replace to="/" /> },
+        ],
+    },
 ])

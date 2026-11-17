@@ -8,49 +8,49 @@ import { readConfig } from "./config"
 import { catalog } from "./domain/catalog"
 import { routes } from "./http/routes"
 import {
-  InMemoryOrders,
-  InMemoryProcessedEvents,
-  OpenFspPaymentApi,
-  SignedWebhooks,
-  systemClock,
+    InMemoryOrders,
+    InMemoryProcessedEvents,
+    OpenFspPaymentApi,
+    SignedWebhooks,
+    systemClock,
 } from "./infrastructure/adapters"
 
 const config = readConfig(process.env)
 const orders = new InMemoryOrders()
 const openfsp = new OpenFsp({
-  baseUrl: config.baseUrl,
-  apiKey: config.apiKey,
-  webhookUrl: config.webhookUrl,
-  allowPlainHttp: config.allowPlainHttp,
+    baseUrl: config.baseUrl,
+    apiKey: config.apiKey,
+    webhookUrl: config.webhookUrl,
+    allowPlainHttp: config.allowPlainHttp,
 })
 const paymentApi = new OpenFspPaymentApi(openfsp)
 const checkout = new Checkout(catalog, paymentApi, orders, systemClock, {
-  providers: config.providers,
-  publicUrl: config.publicUrl,
+    providers: config.providers,
+    publicUrl: config.publicUrl,
 })
 const receiver = new WebhookReceiver(
-  new SignedWebhooks(openfsp),
-  orders,
-  new InMemoryProcessedEvents(),
-  paymentApi,
-  systemClock
+    new SignedWebhooks(openfsp),
+    orders,
+    new InMemoryProcessedEvents(),
+    paymentApi,
+    systemClock
 )
 const dist = join(import.meta.dir, "..", "dist")
 
 Bun.serve({
-  port: config.port,
-  hostname: config.host,
-  routes: routes(checkout, receiver),
-  fetch: (request) => {
-    if (!existsSync(dist)) return new Response("Not found", { status: 404 })
-    const path = new URL(request.url).pathname
-    const file = Bun.file(join(dist, path === "/" ? "index.html" : path))
-    return new Response(
-      file.size > 0 ? file : Bun.file(join(dist, "index.html"))
-    )
-  },
+    port: config.port,
+    hostname: config.host,
+    routes: routes(checkout, receiver),
+    fetch: (request) => {
+        if (!existsSync(dist)) {
+            return new Response("Not found", { status: 404 })
+        }
+        const path = new URL(request.url).pathname
+        const file = Bun.file(join(dist, path === "/" ? "index.html" : path))
+        return new Response(file.size > 0 ? file : Bun.file(join(dist, "index.html")))
+    },
 })
 
 console.info(
-  `Demo shop on http://${config.host}:${config.port}, payments through ${config.baseUrl} with ${config.providers?.join(", ") ?? "every provider it offers"}`
+    `Demo shop on http://${config.host}:${config.port}, payments through ${config.baseUrl} with ${config.providers?.join(", ") ?? "every provider it offers"}`
 )

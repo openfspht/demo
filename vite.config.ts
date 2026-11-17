@@ -6,14 +6,14 @@ import { defineConfig } from "vite"
 const server = process.env.SHOP_SERVER_URL ?? "http://127.0.0.1:3000"
 
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
-  resolve: {
-    alias: {
-      "@": resolve(import.meta.dirname, "./src"),
+    plugins: [react(), tailwindcss()],
+    resolve: {
+        alias: {
+            "@": resolve(import.meta.dirname, "./src"),
+        },
     },
-  },
-  server: {
-    port: 5174,
-    proxy: { "/api": server },
-  },
+    server: {
+        port: 5174,
+        proxy: { "/api": server },
+    },
 })
