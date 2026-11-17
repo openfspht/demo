@@ -7,9 +7,9 @@
     "types": ["vite/client"],
     "allowArbitraryExtensions": true,
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./client/*"]
     }
   },
-  "include": ["src", "shared"],
+  "include": ["client", "shared"],
   "exclude": ["shared/**/*.test.ts"]
 }
