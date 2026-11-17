@@ -2,8 +2,8 @@ import type { Messages } from "./en"
 
 export const fr: Messages = {
   shop: "Mache Lakou",
-  tagline: "L'épicerie fine haïtienne, de la montagne à votre porte.",
-  demo: "Boutique de démonstration. Marchand fictif, rien n'est expédié.",
+  tagline: "Une sélection de produits du terroir haïtien.",
+  demo: "Boutique de démonstration : marchand fictif, aucune commande n'est expédiée.",
   nav: { shop: "Boutique", orders: "Commandes", cart: "Panier" },
   aisles: {
     all: "Tout",
@@ -13,7 +13,7 @@ export const fr: Messages = {
     spirits: "Rhum",
     pantry: "Épicerie",
   },
-  featured: "La sélection de la semaine",
+  featured: "Sélection de la semaine",
   add: "Ajouter au panier",
   added: "Dans votre panier",
   from: "Origine",
@@ -24,11 +24,11 @@ export const fr: Messages = {
   cart: {
     title: "Votre panier",
     empty: "Votre panier est vide.",
-    browse: "Le remplir",
+    browse: "Parcourir les produits",
     quantity: "Quantité",
     remove: "Retirer",
-    decrease: (name: string) => `Un de moins : ${name}`,
-    increase: (name: string) => `Un de plus : ${name}`,
+    decrease: (name: string) => `Réduire la quantité de ${name}`,
+    increase: (name: string) => `Augmenter la quantité de ${name}`,
     total: "Total",
     checkout: "Passer au paiement",
     count: (count: number) => (count === 1 ? "1 article" : `${count} articles`),
@@ -44,41 +44,43 @@ export const fr: Messages = {
     provider: "Payer avec",
     phone: "Numéro de téléphone",
     phoneHint:
-      "Facultatif, au format +509 40 00 0000 ; huit chiffres suffisent. Le numéro qui approuve le paiement quand l'opérateur en demande un.",
+      "Facultatif. Saisissez le numéro utilisé pour approuver le paiement si le service le demande. Format accepté : +509 40 00 0000 ou les huit chiffres du numéro national.",
     pay: (total: string) => `Payer ${total}`,
     paying: "Création du paiement",
     secured:
-      "Paiement par OpenFSP. Le statut vient du serveur de paiement, jamais du lien de retour.",
-    noProvider: "Aucun moyen de paiement n'est disponible pour l'instant.",
-    unreachable: "La boutique n'arrive pas à joindre le serveur de paiement.",
+      "Le statut du paiement est confirmé par le serveur de paiement. Le retour vers la boutique ne suffit pas à confirmer le paiement.",
+    noProvider: "Aucun service de paiement n'est disponible actuellement.",
+    unreachable:
+      "Impossible de joindre le serveur de paiement. Vérifiez votre connexion, puis réessayez.",
   },
   order: {
     title: (reference: string) => `Commande ${reference}`,
     status: {
       pending: "En attente de votre paiement",
-      succeeded: "Payée, merci",
-      failed: "Le paiement n'est pas passé",
-      expired: "Le délai de paiement a expiré",
-      canceled: "Le paiement a été annulé",
+      succeeded: "Paiement confirmé",
+      failed: "Paiement échoué",
+      expired: "Délai de paiement expiré",
+      canceled: "Paiement annulé",
     } as Record<string, string>,
     hint: {
       pending:
-        "Cette page se met à jour dès que l'opérateur règle le paiement.",
-      succeeded: "Nous préparons votre commande.",
-      failed:
-        "Rien n'a été débité. Vous pouvez réessayer avec un autre opérateur.",
-      expired: "Rien n'a été débité. Relancez le paiement depuis votre panier.",
-      canceled: "Rien n'a été débité.",
+        "Cette page se met à jour automatiquement lorsque le résultat du paiement est disponible.",
+      succeeded:
+        "Le paiement de démonstration est confirmé. Aucune commande ne sera expédiée.",
+      failed: "Vous pouvez réessayer avec un autre service de paiement.",
+      expired: "Relancez le paiement depuis votre panier.",
+      canceled: "Le paiement a été annulé.",
     } as Record<string, string>,
     continueTo: (provider: string) => `Continuer vers ${provider}`,
     approve: "Approuvez le paiement sur votre téléphone.",
     paidWith: "Payé avec",
     webhooks: "Webhooks vérifiés",
     webhooksHint:
-      "Chaque changement de statut accepté par la boutique portait une signature qu'elle a vérifiée.",
+      "La boutique a vérifié la signature de chaque événement webhook accepté pour mettre à jour le statut du paiement.",
     noWebhooks: "Aucun webhook reçu pour l'instant.",
-    source: "Statut lu auprès du serveur de paiement.",
-    notFound: "Aucune commande avec cette référence.",
+    source: "Statut obtenu auprès du serveur de paiement.",
+    notFound:
+      "Aucune commande ne correspond à cette référence. Vérifiez la référence utilisée.",
   },
   orders: {
     title: "Vos commandes",
