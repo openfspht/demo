@@ -7,6 +7,14 @@ export interface ShopConfig {
     publicUrl: string
     host: string
     port: number
+    monitoring: MonitoringSettings
+}
+
+export interface MonitoringSettings {
+    dsn: string
+    environment: string
+    release: string
+    tracesSampleRate: string
 }
 
 export function readConfig(environment: Record<string, string | undefined>): ShopConfig {
@@ -23,5 +31,11 @@ export function readConfig(environment: Record<string, string | undefined>): Sho
         publicUrl: environment.SHOP_PUBLIC_URL ?? "http://localhost:5174",
         host: environment.HOST ?? "127.0.0.1",
         port: Number(environment.PORT ?? 3000),
+        monitoring: {
+            dsn: environment.SENTRY_DSN ?? "",
+            environment: environment.SENTRY_ENVIRONMENT ?? "",
+            release: environment.SENTRY_RELEASE ?? "",
+            tracesSampleRate: environment.SENTRY_TRACES_SAMPLE_RATE ?? "",
+        },
     }
 }

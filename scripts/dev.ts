@@ -1,5 +1,5 @@
 const processes = [
-    Bun.spawn(["bun", "--watch", "server/main.ts"], {
+    Bun.spawn(["bun", "--watch", "--preload", "./server/instrument.ts", "server/main.ts"], {
         stdio: ["inherit", "inherit", "inherit"],
     }),
     Bun.spawn(["bunx", "vp", "dev"], { stdio: ["inherit", "inherit", "inherit"] }),

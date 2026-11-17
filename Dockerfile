@@ -33,4 +33,4 @@ ENV PORT=3000
 
 EXPOSE 3000
 
-ENTRYPOINT ["bun", "server/main.ts"]
+ENTRYPOINT ["bun", "--preload", "./server/instrument.ts", "server/main.ts"]

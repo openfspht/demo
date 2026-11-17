@@ -58,6 +58,8 @@ The toolchain is [Vite+](https://viteplus.dev): `vp check` formats, lints and ty
 | `SHOP_PUBLIC_URL` | `http://localhost:5174` |
 | `HOST` | `127.0.0.1`, `0.0.0.0` in the image |
 | `PORT` | `3000` |
+| `SENTRY_DSN` | unset: error reporting to Sentry stays off |
+| `SENTRY_ENVIRONMENT`, `SENTRY_RELEASE`, `SENTRY_TRACES_SAMPLE_RATE` | unset |
 
 ## Who sees an order
 

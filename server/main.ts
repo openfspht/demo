@@ -40,7 +40,13 @@ const dist = join(import.meta.dir, "..", "dist")
 Bun.serve({
     port: config.port,
     hostname: config.host,
-    routes: routes(checkout, receiver),
+    routes: {
+        ...routes(checkout, receiver),
+        "/monitoring.json": {
+            GET: () =>
+                Response.json(config.monitoring, { headers: { "Cache-Control": "no-store" } }),
+        },
+    },
     fetch: (request) => {
         if (!existsSync(dist)) {
             return new Response("Not found", { status: 404 })
