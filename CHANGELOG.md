@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/openfspht/demo/compare/v0.2.0...v0.3.0) (2026-11-17)
+
+
+### Features
+
+* expose a health endpoint ([f098dfa](https://github.com/openfspht/demo/commit/f098dfa32ecce0e45260d8144b200aecd30abf2f))
+
 ## [0.2.0](https://github.com/openfspht/demo/compare/v0.1.0...v0.2.0) (2026-11-17)
 
 
