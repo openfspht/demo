@@ -11,6 +11,10 @@ on:
         required: true
       DOCKERHUB_TOKEN:
         required: true
+      COOLIFY_WEBHOOK:
+        required: true
+      COOLIFY_TOKEN:
+        required: true
   workflow_dispatch:
     inputs:
       tag:
@@ -81,3 +85,15 @@ jobs:
             printf -- "- \`docker.io/openfsp/demo:%s\`\n" "${TAG#v}"
           } > notes.md
           gh release edit "$TAG" --repo "$REPO" --notes-file notes.md
+
+  deploy:
+    needs: image
+    runs-on: ubuntu-latest
+    permissions: {}
+    environment: production
+    steps:
+      - env:
+          COOLIFY_WEBHOOK: ${{ secrets.COOLIFY_WEBHOOK }}
+          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
+        run: |
+          curl -fsS --retry 3 -H "Authorization: Bearer $COOLIFY_TOKEN" "$COOLIFY_WEBHOOK"
