@@ -42,6 +42,7 @@ Bun.serve({
     hostname: config.host,
     routes: {
         ...routes(checkout, receiver),
+        "/health": { GET: () => new Response("ok") },
         "/monitoring.json": {
             GET: () =>
                 Response.json(config.monitoring, { headers: { "Cache-Control": "no-store" } }),
