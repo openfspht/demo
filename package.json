@@ -8,10 +8,10 @@
   },
   "scripts": {
     "dev": "bun scripts/dev.ts",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && vp build",
     "start": "bun server/main.ts",
-    "check": "tsc -b --noEmit && eslint && prettier --check .",
-    "format": "prettier --write .",
+    "check": "vp check",
+    "format": "vp fmt .",
     "test": "bun test ./server ./shared"
   },
   "dependencies": {
@@ -26,24 +26,19 @@
     "react-router": "^8.5.1"
   },
   "devDependencies": {
-    "@eslint/js": "^10",
     "@tailwindcss/vite": "^4",
     "@types/bun": "^1.4.4",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@vitejs/plugin-react": "^6",
-    "eslint": "^10",
-    "eslint-plugin-react-hooks": "^7.1.1",
-    "eslint-plugin-react-refresh": "^0.5.7",
-    "globals": "^17",
-    "prettier": "^3.9.10",
     "tailwindcss": "^4",
     "typescript": "~6.0.2",
-    "typescript-eslint": "^8",
-    "vite": "^8"
+    "vite": "npm:@voidzero-dev/vite-plus-core@8.3.8000",
+    "vite-plus": "1.7.0"
   },
   "packageManager": "bun@1.4.2",
   "overrides": {
-    "minimatch": "11.0.1"
+    "minimatch": "11.0.1",
+    "vite": "npm:@voidzero-dev/vite-plus-core@8.3.8000"
   }
 }

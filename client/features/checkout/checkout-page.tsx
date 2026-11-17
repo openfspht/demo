@@ -50,7 +50,7 @@ export function CheckoutPage() {
             if (order.next_action?.type === "redirect") {
                 window.location.assign(order.next_action.redirect_url)
             } else {
-                navigate(`/orders/${encodeURIComponent(order.reference)}`)
+                void navigate(`/orders/${encodeURIComponent(order.reference)}`)
             }
         },
     })

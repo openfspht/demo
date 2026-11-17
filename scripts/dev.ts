@@ -2,7 +2,7 @@ const processes = [
     Bun.spawn(["bun", "--watch", "server/main.ts"], {
         stdio: ["inherit", "inherit", "inherit"],
     }),
-    Bun.spawn(["bunx", "vite"], { stdio: ["inherit", "inherit", "inherit"] }),
+    Bun.spawn(["bunx", "vp", "dev"], { stdio: ["inherit", "inherit", "inherit"] }),
 ]
 
 const stop = () => processes.forEach((child) => child.kill())

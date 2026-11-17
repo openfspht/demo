@@ -22,7 +22,8 @@ export interface ProcessedEvents {
 }
 
 export type Authenticity =
-    { verified: true; event: PaymentEvent } | { verified: false; reason: string }
+    | { verified: true; event: PaymentEvent }
+    | { verified: false; reason: string }
 
 export interface WebhookAuthenticity {
     verify(request: Request): Promise<Authenticity>
