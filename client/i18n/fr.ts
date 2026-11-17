@@ -1,7 +1,7 @@
 import type { Messages } from "./en"
 
 export const fr: Messages = {
-    shop: "Mache Lakou",
+    shop: "TiMache",
     tagline: "Une sélection de produits du terroir haïtien.",
     demo: "Boutique de démonstration : marchand fictif, aucune commande n'est expédiée.",
     nav: { shop: "Boutique", orders: "Commandes", cart: "Panier" },

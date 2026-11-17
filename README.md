@@ -7,14 +7,14 @@
   </a>
 </p>
 
-<p align="center"><b>Mache Lakou, a demonstration merchant application using OpenFSP</b></p>
+<p align="center"><b>TiMache, a demonstration merchant application using OpenFSP</b></p>
 
 <p align="center">
   <a href="https://github.com/openfspht/demo/actions/workflows/ci.yml"><img src="https://github.com/openfspht/demo/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-0B3B36" alt="Apache-2.0"></a>
 </p>
 
-Mache Lakou demonstrates merchant integration with OpenFSP through a product catalogue, a checkout that creates
+TiMache demonstrates merchant integration with OpenFSP through a product catalogue, a checkout that creates
 payments and a receiver for signed webhook events. It uses an OpenFSP client SDK and connects to a server exposing the
 required OpenFSP capabilities. Orders are stored in memory and are discarded when the application restarts.
 

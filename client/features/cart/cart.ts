@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from "react"
 
-const STORAGE_KEY = "mache-lakou.cart"
+const STORAGE_KEY = "timache.cart"
 const MAX_QUANTITY = 20
 
 export type Cart = Record<string, number>

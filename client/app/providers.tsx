@@ -8,7 +8,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
     const [queryClient] = useState(() => new QueryClient())
     return (
         <QueryClientProvider client={queryClient}>
-            <ThemeProvider storageKey="mache-lakou.theme">
+            <ThemeProvider storageKey="timache.theme">
                 <I18nProvider>{children}</I18nProvider>
             </ThemeProvider>
         </QueryClientProvider>

@@ -1,5 +1,5 @@
 export const en = {
-    shop: "Mache Lakou",
+    shop: "TiMache",
     tagline: "A selection of Haitian local products.",
     demo: "Demonstration shop: fictional merchant, no orders are shipped.",
     nav: { shop: "Shop", orders: "Orders", cart: "Cart" },
