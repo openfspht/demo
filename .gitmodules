@@ -1,3 +1,0 @@
-[submodule "openfsp"]
-	path = openfsp
-	url = https://github.com/openfspht/openfsp.git

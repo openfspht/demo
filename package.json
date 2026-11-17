@@ -9,15 +9,15 @@
   "scripts": {
     "dev": "bun scripts/dev.ts",
     "build": "tsc -b && vite build",
-    "start": "bun --conditions=openfsp-source server/main.ts",
+    "start": "bun server/main.ts",
     "check": "tsc -b --noEmit && eslint && prettier --check .",
     "format": "prettier --write .",
-    "test": "bun test --conditions=openfsp-source ./server ./shared"
+    "test": "bun test ./server ./shared"
   },
   "dependencies": {
     "@fontsource-variable/bricolage-grotesque": "5.3.0",
     "@fontsource-variable/inter": "^5.3.0",
-    "@openfsp/sdk": "file:./openfsp/sdks/typescript",
+    "@openfsp/sdk": "^0.1.0",
     "@tanstack/react-query": "^5.107.1",
     "cn": "^0.5.2",
     "lucide-react": "^1.70.0",

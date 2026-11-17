@@ -29,13 +29,11 @@ docker compose --profile demo up    # in the openfsp repository, shop on http://
 To run from source, use Bun and an OpenFSP server at `127.0.0.1:8080`:
 
 ```sh
-git clone --recurse-submodules git@github.com:openfspht/demo.git
+git clone git@github.com:openfspht/demo.git
 bun install
 OPENFSP_API_KEY=... bun run dev     # http://localhost:5174
 bun run check && bun run test
 ```
-
-This checkout obtains the SDK from the `openfsp` submodule. Run `git submodule update --remote openfsp` to update it to the latest revision tracked by the submodule.
 
 | Variable | Default |
 |---|---|

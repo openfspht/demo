@@ -1,5 +1,5 @@
 const processes = [
-    Bun.spawn(["bun", "--watch", "--conditions=openfsp-source", "server/main.ts"], {
+    Bun.spawn(["bun", "--watch", "server/main.ts"], {
         stdio: ["inherit", "inherit", "inherit"],
     }),
     Bun.spawn(["bunx", "vite"], { stdio: ["inherit", "inherit", "inherit"] }),
