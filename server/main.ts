@@ -7,6 +7,7 @@ import { WebhookReceiver } from "./application/webhook-receiver"
 import { readConfig } from "./config"
 import { catalog } from "./domain/catalog"
 import { routes } from "./http/routes"
+import { secured, securityHeaders, withHeaders } from "./http/security-headers"
 import {
     InMemoryOrders,
     InMemoryProcessedEvents,
@@ -37,25 +38,31 @@ const receiver = new WebhookReceiver(
     systemClock
 )
 const dist = join(import.meta.dir, "..", "dist")
+const headers = securityHeaders(config.monitoring.dsn)
+const served = {
+    ...routes(checkout, receiver),
+    "/health": { GET: () => new Response("ok") },
+    "/monitoring.json": {
+        GET: () => Response.json(config.monitoring, { headers: { "Cache-Control": "no-store" } }),
+    },
+}
 
 Bun.serve({
     port: config.port,
     hostname: config.host,
-    routes: {
-        ...routes(checkout, receiver),
-        "/health": { GET: () => new Response("ok") },
-        "/monitoring.json": {
-            GET: () =>
-                Response.json(config.monitoring, { headers: { "Cache-Control": "no-store" } }),
-        },
-    },
+    routes: Object.fromEntries(
+        Object.entries(served).map(([path, handlers]) => [path, secured(handlers, headers)])
+    ),
     fetch: (request) => {
         if (!existsSync(dist)) {
-            return new Response("Not found", { status: 404 })
+            return withHeaders(new Response("Not found", { status: 404 }), headers)
         }
         const path = new URL(request.url).pathname
         const file = Bun.file(join(dist, path === "/" ? "index.html" : path))
-        return new Response(file.size > 0 ? file : Bun.file(join(dist, "index.html")))
+        return withHeaders(
+            new Response(file.size > 0 ? file : Bun.file(join(dist, "index.html"))),
+            headers
+        )
     },
 })
 
