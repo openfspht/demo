@@ -19,6 +19,7 @@ function order(reference: string, session: string): Order {
     return {
         reference,
         session_id: session,
+        attempt_id: `attempt-${reference}`,
         lines: [],
         amount: { amount: 35_000, currency: "HTG" },
         idempotency_key: `key-${reference}`,

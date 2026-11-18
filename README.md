@@ -63,8 +63,10 @@ The toolchain is [Vite+](https://viteplus.dev): `vp check` formats, lints and ty
 
 ## Who sees an order
 
-The demonstration shop does not use customer accounts. The first order placed from a browser sets an `HttpOnly`
-`shop_session` cookie. `GET /api/orders` lists only orders associated with that cookie. `GET /api/orders/:reference`
+The demonstration shop does not use customer accounts. The catalogue request sets an `HttpOnly` `shop_session` cookie.
+`GET /api/orders` lists only orders associated with that cookie. Each checkout sends a purchase attempt identifier: the
+order is attached to the session before the payment is created, and resubmitting the same purchase after a lost response
+returns the same order and reuses its idempotency key. `GET /api/orders/:reference`
 is accessible to anyone holding the randomly generated reference, which acts as a bearer link. This allows a payer
 returning from a payment service to access the order in another browser. Every order response carries only the public
 fields defined in [`shared/shop.ts`](shared/shop.ts): never the idempotency key or the payment identifier.

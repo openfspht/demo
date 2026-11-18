@@ -33,6 +33,28 @@ export class InvalidOrder extends Error {
 
 export class UnknownOrder extends Error {}
 
+export class AttemptConflict extends Error {}
+
+export interface PurchaseAttempt {
+    session: string
+    id: string
+}
+
+type Purchase = Pick<Order, "lines" | "provider" | "payer_phone_number">
+
+function isSamePurchase(order: Order, purchase: Purchase): boolean {
+    return (
+        order.provider === purchase.provider &&
+        order.payer_phone_number === purchase.payer_phone_number &&
+        order.lines.length === purchase.lines.length &&
+        order.lines.every(
+            (line, index) =>
+                line.product_id === purchase.lines[index]!.product_id &&
+                line.quantity === purchase.lines[index]!.quantity
+        )
+    )
+}
+
 export interface CheckoutSettings {
     providers?: string[]
     publicUrl: string
@@ -78,7 +100,7 @@ export class Checkout {
     }
 
     async place(
-        session: string,
+        attempt: PurchaseAttempt,
         requested: { product_id: string; quantity: number }[],
         phoneNumber: string,
         provider: string
@@ -117,43 +139,65 @@ export class Checkout {
         if (!known) {
             throw new InvalidOrder("unknown-provider", `${provider} is not an offered provider`)
         }
-        const amount = {
-            amount: lines.reduce(
-                (total, line) => total + line.unit_price.amount * line.quantity,
-                0
-            ),
-            currency: lines[0]!.unit_price.currency,
+        const purchase = { lines, provider, payer_phone_number: payerPhoneNumber }
+        const order = this.resume(attempt, purchase) ?? this.open(attempt, purchase)
+        if (order.payment_id) {
+            return order
         }
-        const reference = this.newReference()
-        const request: PaymentRequest = {
-            reference,
-            amount: Money.centimes(amount.amount),
-            provider,
-            ...(payerPhoneNumber ? { payerPhoneNumber } : {}),
-            description: lines
-                .map((line) => `${line.quantity} x ${line.name}`)
-                .join(", ")
-                .slice(0, MAX_DESCRIPTION),
-            returnUrl: `${this.settings.publicUrl}/orders/${reference}`,
-            metadata: {
-                items: lines.map((line) => `${line.product_id}:${line.quantity}`).join(","),
+        const payment = await this.createPayment(order)
+        return this.revise(order.reference, (current) => adoptCreatedPayment(current, payment))
+    }
+
+    private resume(attempt: PurchaseAttempt, purchase: Purchase): Order | undefined {
+        const existing = this.orders.findAttempt(attempt.session, attempt.id)
+        if (existing && !isSamePurchase(existing, purchase)) {
+            throw new AttemptConflict(attempt.id)
+        }
+        return existing
+    }
+
+    private open(attempt: PurchaseAttempt, purchase: Purchase): Order {
+        const order: Order = {
+            reference: this.newReference(),
+            session_id: attempt.session,
+            attempt_id: attempt.id,
+            lines: purchase.lines,
+            amount: {
+                amount: purchase.lines.reduce(
+                    (total, line) => total + line.unit_price.amount * line.quantity,
+                    0
+                ),
+                currency: purchase.lines[0]!.unit_price.currency,
             },
-        }
-        const placed: Order = {
-            reference,
-            session_id: session,
-            lines,
-            amount,
             idempotency_key: crypto.randomUUID(),
-            provider,
+            provider: purchase.provider,
+            ...(purchase.payer_phone_number
+                ? { payer_phone_number: purchase.payer_phone_number }
+                : {}),
             status: "pending",
             created_at: this.clock.now().toISOString(),
             events: [],
             version: 0,
         }
-        this.orders.add(placed)
-        const payment = await this.createPayment(placed, request)
-        return this.revise(reference, (current) => adoptCreatedPayment(current, payment))
+        this.orders.add(order)
+        return order
+    }
+
+    private paymentRequest(order: Order): PaymentRequest {
+        return {
+            reference: order.reference,
+            amount: Money.centimes(order.amount.amount),
+            provider: order.provider,
+            ...(order.payer_phone_number ? { payerPhoneNumber: order.payer_phone_number } : {}),
+            description: order.lines
+                .map((line) => `${line.quantity} x ${line.name}`)
+                .join(", ")
+                .slice(0, MAX_DESCRIPTION),
+            returnUrl: `${this.settings.publicUrl}/orders/${order.reference}`,
+            metadata: {
+                items: order.lines.map((line) => `${line.product_id}:${line.quantity}`).join(","),
+            },
+        }
     }
 
     async read(reference: string): Promise<Order> {
@@ -192,9 +236,12 @@ export class Checkout {
         }
     }
 
-    private async createPayment(order: Order, request: PaymentRequest) {
+    private async createPayment(order: Order) {
         try {
-            return await this.paymentApi.createPayment(request, order.idempotency_key)
+            return await this.paymentApi.createPayment(
+                this.paymentRequest(order),
+                order.idempotency_key
+            )
         } catch (failure) {
             if (failure instanceof InvalidRequestError) {
                 this.orders.remove(order.reference)

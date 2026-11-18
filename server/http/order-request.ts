@@ -3,6 +3,7 @@ import type { OrderRequestBody } from "#shared/shop"
 import { InvalidOrder } from "../application/checkout"
 
 const MAX_LINES = 50
+const ATTEMPT_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
 
 export async function readOrderRequest(request: Request): Promise<OrderRequestBody> {
     let body: unknown
@@ -14,7 +15,10 @@ export async function readOrderRequest(request: Request): Promise<OrderRequestBo
     if (!isRecord(body)) {
         throw new InvalidOrder("invalid-body", "the body must be a JSON object")
     }
-    const { lines, phone_number = "", provider } = body
+    const { attempt_id, lines, phone_number = "", provider } = body
+    if (typeof attempt_id !== "string" || !ATTEMPT_ID.test(attempt_id)) {
+        throw new InvalidOrder("invalid-body", "attempt_id must be a random UUID")
+    }
     if (!Array.isArray(lines) || lines.length > MAX_LINES) {
         throw new InvalidOrder(
             "invalid-body",
@@ -24,7 +28,7 @@ export async function readOrderRequest(request: Request): Promise<OrderRequestBo
     if (typeof phone_number !== "string" || typeof provider !== "string") {
         throw new InvalidOrder("invalid-body", "phone_number and provider must be strings")
     }
-    return { lines: lines.map(readLine), phone_number, provider }
+    return { attempt_id, lines: lines.map(readLine), phone_number, provider }
 }
 
 function readLine(line: unknown): OrderRequestBody["lines"][number] {

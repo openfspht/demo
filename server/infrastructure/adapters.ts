@@ -58,6 +58,7 @@ export interface Retention {
 export class InMemoryOrders implements Orders {
     private readonly orders = new Map<string, { order: Order; addedAt: number }>()
     private readonly bySession = new Map<string, string[]>()
+    private readonly attempts = new Map<string, Map<string, string>>()
     private readonly retention: Retention
 
     constructor(retention: Retention) {
@@ -68,12 +69,18 @@ export class InMemoryOrders implements Orders {
         if (this.orders.has(order.reference)) {
             throw new Error(`order ${order.reference} already exists`)
         }
+        if (this.findAttempt(order.session_id, order.attempt_id)) {
+            throw new Error(`attempt ${order.attempt_id} already has an order`)
+        }
         this.evict()
         this.orders.set(order.reference, { order, addedAt: this.retention.clock.now().getTime() })
         this.bySession.set(order.session_id, [
             ...(this.bySession.get(order.session_id) ?? []),
             order.reference,
         ])
+        const attempts = this.attempts.get(order.session_id) ?? new Map<string, string>()
+        attempts.set(order.attempt_id, order.reference)
+        this.attempts.set(order.session_id, attempts)
     }
 
     replace(order: Order) {
@@ -95,15 +102,23 @@ export class InMemoryOrders implements Orders {
         const owned = (this.bySession.get(entry.order.session_id) ?? []).filter(
             (candidate) => candidate !== reference
         )
+        const attempts = this.attempts.get(entry.order.session_id)
+        attempts?.delete(entry.order.attempt_id)
         if (owned.length > 0) {
             this.bySession.set(entry.order.session_id, owned)
         } else {
             this.bySession.delete(entry.order.session_id)
+            this.attempts.delete(entry.order.session_id)
         }
     }
 
     find(reference: string) {
         return this.orders.get(reference)?.order
+    }
+
+    findAttempt(session: string, attempt: string) {
+        const reference = this.attempts.get(session)?.get(attempt)
+        return reference ? this.find(reference) : undefined
     }
 
     ofSession(session: string, offset: number, limit: number) {

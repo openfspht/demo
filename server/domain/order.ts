@@ -18,11 +18,13 @@ export interface OrderLine {
 export interface Order {
     reference: string
     session_id: string
+    attempt_id: string
     lines: OrderLine[]
     amount: Money
     idempotency_key: string
     payment_id?: string
     provider: string
+    payer_phone_number?: string
     status: PaymentStatus
     next_action?: NextAction
     created_at: string

@@ -6,6 +6,7 @@ import { Navigate, useNavigate } from "react-router"
 
 import { shop } from "@/api/shop"
 import { cartStore } from "@/features/cart/cart"
+import { attemptStore, type Purchase } from "@/features/checkout/attempt"
 import { useCartLines } from "@/features/cart/cart-page"
 import { useCatalog } from "@/features/catalog/use-catalog"
 import { useI18n } from "@/i18n/i18n-provider"
@@ -35,16 +36,19 @@ export function CheckoutPage() {
     const [phone, setPhone] = useState("")
     const provider = chosen ?? providers[0]?.id
     const pay = useMutation({
-        mutationFn: () =>
-            shop.order(
-                lines.map((line) => ({
+        mutationFn: () => {
+            const purchase: Purchase = {
+                lines: lines.map((line) => ({
                     product_id: line.product.id,
                     quantity: line.quantity,
                 })),
-                phone.trim(),
-                provider ?? ""
-            ),
+                phone_number: phone.trim(),
+                provider: provider ?? "",
+            }
+            return shop.order({ attempt_id: attemptStore.identify(purchase), ...purchase })
+        },
         onSuccess: (order) => {
+            attemptStore.settle()
             cartStore.clear()
             void queryClient.invalidateQueries({ queryKey: ["orders"] })
             if (order.next_action?.type === "redirect") {

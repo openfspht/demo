@@ -31,13 +31,9 @@ export const shop = {
     catalog: () => request<Catalog>("/api/products"),
     orders: (page: number) => request<OrderPage>(`/api/orders?page=${page}&size=12`),
     read: (reference: string) => request<OrderView>(`/api/orders/${encodeURIComponent(reference)}`),
-    order: (lines: OrderRequestBody["lines"], phoneNumber: string, provider: string) =>
+    order: (body: OrderRequestBody) =>
         request<OrderView>("/api/orders", {
             method: "POST",
-            body: JSON.stringify({
-                lines,
-                phone_number: phoneNumber,
-                provider,
-            } satisfies OrderRequestBody),
+            body: JSON.stringify(body),
         }),
 }

@@ -74,6 +74,7 @@ const place = (cookie?: string) =>
             ...(cookie ? { Cookie: cookie } : {}),
         },
         body: JSON.stringify({
+            attempt_id: crypto.randomUUID(),
             lines: [{ product_id: "coffee", quantity: 1 }],
             provider: "mock_alpha",
         }),
@@ -102,6 +103,30 @@ describe("orders", () => {
         expect((await listed(cookie)).sort()).toEqual([own, second].sort())
         expect(await listed()).toEqual([])
         expect(await listed("shop_session=guessed")).toEqual([])
+    })
+})
+
+describe("purchase attempts", () => {
+    test("the catalog opens the session, so a resubmitted purchase finds its order", async () => {
+        const catalog = await fetch(new URL("/api/products", server.url))
+        const cookie = catalog.headers.get("Set-Cookie")?.split(";")[0]
+        expect(cookie).toStartWith("shop_session=")
+        const body = JSON.stringify({
+            attempt_id: crypto.randomUUID(),
+            lines: [{ product_id: "coffee", quantity: 1 }],
+            provider: "mock_alpha",
+        })
+        const submit = () =>
+            fetch(new URL("/api/orders", server.url), {
+                method: "POST",
+                headers: { "Content-Type": "application/json", Cookie: cookie! },
+                body,
+            })
+        const first = (await (await submit()).json()) as { reference: string }
+        const again = (await (await submit()).json()) as { reference: string }
+
+        expect(again.reference).toBe(first.reference)
+        expect(await listed(cookie)).toEqual([first.reference])
     })
 })
 
@@ -144,22 +169,42 @@ describe("order requests", () => {
             body,
         })
 
+    const ATTEMPT = "5d2f6a1e-8c3b-4e7a-9f10-2b4c6d8e0a12"
+
     test.each([
         ["malformed JSON", "{lines:", "invalid-body"],
         ["an array body", "[]", "invalid-body"],
         [
+            "a missing attempt",
+            JSON.stringify({
+                lines: [{ product_id: "coffee", quantity: 1 }],
+                provider: "mock_alpha",
+            }),
+            "invalid-body",
+        ],
+        [
+            "an attempt that is not a random UUID",
+            JSON.stringify({
+                attempt_id: "1",
+                lines: [{ product_id: "coffee", quantity: 1 }],
+                provider: "mock_alpha",
+            }),
+            "invalid-body",
+        ],
+        [
             "lines that are not an array",
-            JSON.stringify({ lines: "coffee", provider: "mock_alpha" }),
+            JSON.stringify({ attempt_id: ATTEMPT, lines: "coffee", provider: "mock_alpha" }),
             "invalid-body",
         ],
         [
             "a provider that is not a string",
-            JSON.stringify({ lines: [], provider: 1 }),
+            JSON.stringify({ attempt_id: ATTEMPT, lines: [], provider: 1 }),
             "invalid-body",
         ],
         [
             "a phone number that is not a string",
             JSON.stringify({
+                attempt_id: ATTEMPT,
                 lines: [{ product_id: "coffee", quantity: 1 }],
                 provider: "mock_alpha",
                 phone_number: 509,
@@ -168,12 +213,13 @@ describe("order requests", () => {
         ],
         [
             "a line that is not an object",
-            JSON.stringify({ lines: ["coffee"], provider: "mock_alpha" }),
+            JSON.stringify({ attempt_id: ATTEMPT, lines: ["coffee"], provider: "mock_alpha" }),
             "invalid-line",
         ],
         [
             "a quantity that is not a number",
             JSON.stringify({
+                attempt_id: ATTEMPT,
                 lines: [{ product_id: "coffee", quantity: "2" }],
                 provider: "mock_alpha",
             }),
@@ -182,6 +228,7 @@ describe("order requests", () => {
         [
             "a phone number that is not E.164",
             JSON.stringify({
+                attempt_id: ATTEMPT,
                 lines: [{ product_id: "coffee", quantity: 1 }],
                 provider: "mock_alpha",
                 phone_number: "1234",

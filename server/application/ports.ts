@@ -15,6 +15,7 @@ export interface Orders {
     replace(order: Order): Order | undefined
     remove(reference: string): void
     find(reference: string): Order | undefined
+    findAttempt(session: string, attempt: string): Order | undefined
     ofSession(session: string, offset: number, limit: number): { orders: Order[]; total: number }
 }
 

@@ -1,7 +1,7 @@
 import { ApiError, InvalidRequestError } from "@openfsp/sdk"
 import type { Catalog, OrderPage, OrderView } from "#shared/shop"
 
-import { Checkout, InvalidOrder, UnknownOrder } from "../application/checkout"
+import { AttemptConflict, Checkout, InvalidOrder, UnknownOrder } from "../application/checkout"
 import type { WebhookReceiver } from "../application/webhook-receiver"
 import { BrowserSessions } from "./browser-sessions"
 import { readOrderRequest } from "./order-request"
@@ -19,11 +19,13 @@ export function routes(
 ): Record<string, Partial<Record<"GET" | "POST", Route>>> {
     return {
         "/api/products": {
-            GET: async () =>
-                Response.json({
+            GET: async (request) => {
+                sessions.open(request)
+                return Response.json({
                     data: checkout.products(),
                     providers: await checkout.providers(),
-                } satisfies Catalog),
+                } satisfies Catalog)
+            },
         },
         "/api/orders": {
             GET: (request) => {
@@ -51,7 +53,7 @@ export function routes(
                 handle(async () => {
                     const body = await readOrderRequest(request)
                     const order = await checkout.place(
-                        sessions.open(request),
+                        { session: sessions.open(request), id: body.attempt_id },
                         body.lines,
                         body.phone_number,
                         body.provider
@@ -100,6 +102,15 @@ async function handle(work: () => Promise<Response>): Promise<Response> {
             return Response.json(
                 { code: "rejected-request", detail: error.message },
                 { status: 400 }
+            )
+        }
+        if (error instanceof AttemptConflict) {
+            return Response.json(
+                {
+                    code: "attempt-conflict",
+                    detail: "this purchase attempt was already used for another cart",
+                },
+                { status: 409 }
             )
         }
         if (error instanceof UnknownOrder) {

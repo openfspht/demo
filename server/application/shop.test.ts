@@ -11,13 +11,15 @@ import {
 
 import { catalog } from "../domain/catalog"
 import { InMemoryOrders, InMemoryProcessedEvents } from "../infrastructure/adapters"
-import { Checkout, InvalidOrder } from "./checkout"
+import { AttemptConflict, Checkout, InvalidOrder } from "./checkout"
 import type { Authenticity, PaymentApi, WebhookAuthenticity } from "./ports"
 import { WebhookReceiver } from "./webhook-receiver"
 
 const clock = { now: () => new Date("2026-11-09T15:00:00Z") }
 
 const SESSION = "0b0c3f52-1c43-4d5e-9a3b-6f1e2d7c8a90"
+
+const attempt = () => ({ session: SESSION, id: crypto.randomUUID() })
 
 const retention = { capacity: 100, maxAgeMs: 86_400_000, clock }
 
@@ -113,7 +115,7 @@ describe("checkout", () => {
     test("places an order for a known product and provider", async () => {
         const { checkout } = setUp()
         const order = await checkout.place(
-            SESSION,
+            attempt(),
             [
                 { product_id: "coffee", quantity: 2 },
                 { product_id: "mangoes", quantity: 1 },
@@ -140,7 +142,7 @@ describe("checkout", () => {
             publicUrl: "https://shop.example",
         })
         await checkout.place(
-            SESSION,
+            attempt(),
             [{ product_id: "coffee", quantity: 1 }],
             "3456 7890",
             "mock_alpha"
@@ -150,9 +152,9 @@ describe("checkout", () => {
 
     test("refuses an empty cart or a quantity out of range", async () => {
         const { checkout } = setUp()
-        expect(checkout.place(SESSION, [], "", "mock_alpha")).rejects.toBeInstanceOf(InvalidOrder)
+        expect(checkout.place(attempt(), [], "", "mock_alpha")).rejects.toBeInstanceOf(InvalidOrder)
         expect(
-            checkout.place(SESSION, [{ product_id: "coffee", quantity: 21 }], "", "mock_alpha")
+            checkout.place(attempt(), [{ product_id: "coffee", quantity: 21 }], "", "mock_alpha")
         ).rejects.toBeInstanceOf(InvalidOrder)
     })
 
@@ -168,7 +170,7 @@ describe("checkout", () => {
         for (const phone of ["1234", "+509 abc", "0050934567890"]) {
             await expect(
                 checkout.place(
-                    SESSION,
+                    attempt(),
                     [{ product_id: "coffee", quantity: 1 }],
                     phone,
                     "mock_alpha"
@@ -187,7 +189,7 @@ describe("checkout", () => {
             },
         })
         await expect(
-            checkout.place(SESSION, [{ product_id: "coffee", quantity: 1 }], "", "mock_alpha")
+            checkout.place(attempt(), [{ product_id: "coffee", quantity: 1 }], "", "mock_alpha")
         ).rejects.toMatchObject({ code: "rejected-request" })
         expect(orders.ofSession(SESSION, 0, 100).orders).toHaveLength(0)
     })
@@ -196,7 +198,7 @@ describe("checkout", () => {
         const { checkout } = setUp()
         expect(
             checkout.place(
-                SESSION,
+                attempt(),
                 [{ product_id: "coffee", quantity: 1 }],
                 "+50934567890",
                 "moncash"
@@ -207,7 +209,7 @@ describe("checkout", () => {
     test("gives orders placed at the same instant distinct readable references", async () => {
         const { checkout } = setUp()
         const place = () =>
-            checkout.place(SESSION, [{ product_id: "coffee", quantity: 1 }], "", "mock_alpha")
+            checkout.place(attempt(), [{ product_id: "coffee", quantity: 1 }], "", "mock_alpha")
         const references = [(await place()).reference, (await place()).reference]
         expect(new Set(references).size).toBe(2)
         for (const reference of references) {
@@ -228,7 +230,7 @@ describe("checkout", () => {
             },
         })
         const order = await checkout.place(
-            SESSION,
+            attempt(),
             [{ product_id: "coffee", quantity: 1 }],
             "",
             "mock_alpha"
@@ -256,7 +258,7 @@ describe("checkout", () => {
             getPayment: async () => payment("succeeded"),
         })
         const place = () =>
-            checkout.place(SESSION, [{ product_id: "coffee", quantity: 1 }], "", "mock_alpha")
+            checkout.place(attempt(), [{ product_id: "coffee", quantity: 1 }], "", "mock_alpha")
         await expect(place()).rejects.toBeInstanceOf(ApiError)
         expect(orders.ofSession(SESSION, 0, 100).orders).toHaveLength(0)
 
@@ -273,7 +275,7 @@ describe("checkout", () => {
     test("reads the order status from the paymentApi on return", async () => {
         const { checkout } = setUp()
         const order = await checkout.place(
-            SESSION,
+            attempt(),
             [
                 { product_id: "coffee", quantity: 2 },
                 { product_id: "mangoes", quantity: 1 },
@@ -282,6 +284,95 @@ describe("checkout", () => {
             "mock_alpha"
         )
         expect((await checkout.read(order.reference)).status).toBe("succeeded")
+    })
+})
+
+describe("purchase attempts", () => {
+    const coffee = [{ product_id: "coffee", quantity: 1 }]
+
+    test("a resubmission after a lost response finds the same order and idempotency key", async () => {
+        const sent: { reference: string; key: string; listed: string[] }[] = []
+        const context: { checkout?: Checkout } = {}
+        const { checkout } = setUp({
+            ...paymentApi,
+            createPayment: async (request, idempotencyKey) => {
+                sent.push({
+                    reference: request.reference,
+                    key: idempotencyKey,
+                    listed: context.checkout!.list(SESSION, 0, 12).orders.map((it) => it.reference),
+                })
+                if (sent.length === 1) {
+                    throw new ApiError({
+                        status: 504,
+                        code: "provider-timeout",
+                        title: "Timeout",
+                        retryable: true,
+                        effect: "unknown",
+                    })
+                }
+                return payment("pending", request.reference)
+            },
+        })
+        context.checkout = checkout
+        const same = attempt()
+
+        await expect(checkout.place(same, coffee, "", "mock_alpha")).rejects.toBeInstanceOf(
+            ApiError
+        )
+        const order = await checkout.place(same, coffee, "", "mock_alpha")
+
+        expect(sent).toHaveLength(2)
+        expect(sent[1]).toEqual(sent[0]!)
+        expect(sent[0]!.listed).toEqual([order.reference])
+        expect(order).toMatchObject({
+            reference: sent[0]!.reference,
+            idempotency_key: sent[0]!.key,
+        })
+        expect(checkout.list(SESSION, 0, 12).total).toBe(1)
+    })
+
+    test("a resubmission of a created payment answers the same order without calling again", async () => {
+        let calls = 0
+        const { checkout } = setUp({
+            ...paymentApi,
+            createPayment: async (request) => {
+                calls += 1
+                return payment("pending", request.reference)
+            },
+        })
+        const same = attempt()
+        const first = await checkout.place(same, coffee, "", "mock_alpha")
+        const again = await checkout.place(same, coffee, "", "mock_alpha")
+
+        expect(calls).toBe(1)
+        expect(again.reference).toBe(first.reference)
+    })
+
+    test("refuses to reuse an attempt for another purchase", async () => {
+        const { checkout } = setUp()
+        const same = attempt()
+        await checkout.place(same, coffee, "", "mock_alpha")
+
+        await expect(
+            checkout.place(same, [{ product_id: "coffee", quantity: 2 }], "", "mock_alpha")
+        ).rejects.toBeInstanceOf(AttemptConflict)
+        await expect(
+            checkout.place(same, coffee, "+50934567890", "mock_alpha")
+        ).rejects.toBeInstanceOf(AttemptConflict)
+    })
+
+    test("keeps attempts apart between sessions", async () => {
+        const { checkout } = setUp()
+        const id = crypto.randomUUID()
+        const mine = await checkout.place({ session: SESSION, id }, coffee, "", "mock_alpha")
+        const theirs = await checkout.place(
+            { session: "7f9e8d7c-6b5a-4c3d-8e1f-0a1b2c3d4e5f", id },
+            coffee,
+            "",
+            "mock_alpha"
+        )
+
+        expect(theirs.reference).not.toBe(mine.reference)
     })
 })
 
@@ -297,7 +388,7 @@ describe("webhook receiver", () => {
     test("applies events in sequence, ignores duplicates and stale ones, and never leaves a terminal state", async () => {
         const { checkout, deliver, orders } = setUp()
         const { reference } = await checkout.place(
-            SESSION,
+            attempt(),
             [{ product_id: "coffee", quantity: 1 }],
             "+50934567890",
             "mock_alpha"
@@ -328,7 +419,7 @@ describe("webhook receiver", () => {
             },
         })
         const { reference } = await checkout.place(
-            SESSION,
+            attempt(),
             [{ product_id: "coffee", quantity: 1 }],
             "+50934567890",
             "mock_alpha"
@@ -353,7 +444,7 @@ describe("webhook receiver", () => {
             },
         })
         const { reference } = await checkout.place(
-            SESSION,
+            attempt(),
             [{ product_id: "coffee", quantity: 1 }],
             "+50934567890",
             "mock_alpha"
@@ -383,7 +474,7 @@ describe("webhook receiver", () => {
         })
         context.deliver = deliver
         const order = await checkout.place(
-            SESSION,
+            attempt(),
             [{ product_id: "coffee", quantity: 1 }],
             "",
             "mock_alpha"
@@ -405,7 +496,7 @@ describe("webhook receiver", () => {
             },
         })
         const { reference } = await checkout.place(
-            SESSION,
+            attempt(),
             [{ product_id: "coffee", quantity: 1 }],
             "+50934567890",
             "mock_alpha"
@@ -450,7 +541,7 @@ describe("concurrent writes on one order", () => {
         const reads = heldReads()
         const { checkout, deliver, orders } = setUp({ ...paymentApi, getPayment: reads.getPayment })
         const { reference } = await checkout.place(
-            SESSION,
+            attempt(),
             [{ product_id: "coffee", quantity: 1 }],
             "",
             "mock_alpha"
@@ -470,7 +561,7 @@ describe("concurrent writes on one order", () => {
         const reads = heldReads()
         const { checkout, deliver, orders } = setUp({ ...paymentApi, getPayment: reads.getPayment })
         const { reference } = await checkout.place(
-            SESSION,
+            attempt(),
             [{ product_id: "coffee", quantity: 1 }],
             "",
             "mock_alpha"
@@ -491,7 +582,7 @@ describe("concurrent writes on one order", () => {
         const reads = heldReads()
         const { checkout, deliver, orders } = setUp({ ...paymentApi, getPayment: reads.getPayment })
         const { reference } = await checkout.place(
-            SESSION,
+            attempt(),
             [{ product_id: "coffee", quantity: 1 }],
             "",
             "mock_alpha"

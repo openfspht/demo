@@ -53,6 +53,7 @@ export interface OrderView {
 export type OrderPage = Page<OrderView>
 
 export interface OrderRequestBody {
+    attempt_id: string
     lines: { product_id: string; quantity: number }[]
     phone_number: string
     provider: string
