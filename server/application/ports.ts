@@ -10,7 +10,9 @@ export interface PaymentApi {
 }
 
 export interface Orders {
-    save(order: Order): void
+    add(order: Order): void
+    /** Compare and set: stores the order only if its version is still the stored one. */
+    replace(order: Order): Order | undefined
     remove(reference: string): void
     find(reference: string): Order | undefined
     all(): Order[]

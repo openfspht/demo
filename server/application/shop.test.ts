@@ -379,3 +379,88 @@ describe("webhook receiver", () => {
         expect(orders.find(reference)?.status).toBe("succeeded")
     })
 })
+
+function deferred<T>() {
+    let resolve!: (value: T) => void
+    const promise = new Promise<T>((settle) => {
+        resolve = settle
+    })
+    return { promise, resolve }
+}
+
+function heldReads() {
+    const pending: ReturnType<typeof deferred<Payment>>[] = []
+    let asked = deferred<void>()
+    return {
+        pending,
+        nextCall: () => asked.promise,
+        getPayment: () => {
+            const answer = deferred<Payment>()
+            pending.push(answer)
+            asked.resolve()
+            asked = deferred<void>()
+            return answer.promise
+        },
+    }
+}
+
+describe("concurrent writes on one order", () => {
+    test("a read answered after a webhook keeps the webhook's terminal status and event", async () => {
+        const reads = heldReads()
+        const { checkout, deliver, orders } = setUp({ ...paymentApi, getPayment: reads.getPayment })
+        const { reference } = await checkout.place(
+            [{ product_id: "coffee", quantity: 1 }],
+            "",
+            "mock_alpha"
+        )
+        const reading = checkout.read(reference)
+        expect(await deliver(event(1, "succeeded", reference))).toMatchObject({
+            outcome: "applied",
+        })
+        reads.pending[0]!.resolve(payment("pending", reference))
+
+        expect(await reading).toMatchObject({ status: "succeeded" })
+        expect(orders.find(reference)).toMatchObject({ status: "succeeded" })
+        expect(orders.find(reference)?.events.map((it) => it.id)).toEqual(["evt_1"])
+    })
+
+    test("a webhook resynchronised after a read keeps the read's terminal status", async () => {
+        const reads = heldReads()
+        const { checkout, deliver, orders } = setUp({ ...paymentApi, getPayment: reads.getPayment })
+        const { reference } = await checkout.place(
+            [{ product_id: "coffee", quantity: 1 }],
+            "",
+            "mock_alpha"
+        )
+        const delivering = deliver(event(2, "succeeded", reference))
+        await reads.nextCall()
+        const reading = checkout.read(reference)
+        reads.pending[1]!.resolve(payment("succeeded", reference))
+        expect(await reading).toMatchObject({ status: "succeeded" })
+        reads.pending[0]!.resolve(payment("pending", reference))
+
+        expect(await delivering).toMatchObject({ outcome: "gap" })
+        expect(orders.find(reference)).toMatchObject({ status: "succeeded" })
+        expect(orders.find(reference)?.events.map((it) => it.id)).toEqual(["evt_2"])
+    })
+
+    test("a webhook resynchronised after another event keeps both events", async () => {
+        const reads = heldReads()
+        const { checkout, deliver, orders } = setUp({ ...paymentApi, getPayment: reads.getPayment })
+        const { reference } = await checkout.place(
+            [{ product_id: "coffee", quantity: 1 }],
+            "",
+            "mock_alpha"
+        )
+        const delivering = deliver(event(3, "failed", reference))
+        await reads.nextCall()
+        expect(await deliver(event(1, "pending", reference))).toMatchObject({
+            outcome: "applied",
+        })
+        reads.pending[0]!.resolve(payment("failed", reference))
+
+        expect(await delivering).toMatchObject({ outcome: "gap" })
+        expect(orders.find(reference)).toMatchObject({ status: "failed" })
+        expect(orders.find(reference)?.events.map((it) => it.id)).toEqual(["evt_1", "evt_3"])
+    })
+})

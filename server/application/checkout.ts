@@ -123,12 +123,11 @@ export class Checkout {
             status: "pending",
             created_at: this.clock.now().toISOString(),
             events: [],
+            version: 0,
         }
-        this.orders.save(placed)
+        this.orders.add(placed)
         const payment = await this.createPayment(placed, request)
-        const order = adoptCreatedPayment(this.orders.find(reference) ?? placed, payment)
-        this.orders.save(order)
-        return order
+        return this.revise(reference, (current) => adoptCreatedPayment(current, payment))
     }
 
     async read(reference: string): Promise<Order> {
@@ -140,11 +139,22 @@ export class Checkout {
             ? await this.paymentApi.getPayment(order.payment_id)
             : await this.paymentApi.findPayment(reference)
         if (!payment) {
-            return order
+            return this.orders.find(reference) ?? order
         }
-        const current = syncWithPayment(order, payment)
-        this.orders.save(current)
-        return current
+        return this.revise(reference, (current) => syncWithPayment(current, payment))
+    }
+
+    private revise(reference: string, change: (current: Order) => Order): Order {
+        for (;;) {
+            const current = this.orders.find(reference)
+            if (!current) {
+                throw new UnknownOrder(reference)
+            }
+            const stored = this.orders.replace(change(current))
+            if (stored) {
+                return stored
+            }
+        }
     }
 
     private newReference(): string {

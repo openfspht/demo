@@ -52,8 +52,20 @@ export class SignedWebhooks implements WebhookAuthenticity {
 export class InMemoryOrders implements Orders {
     private readonly orders = new Map<string, Order>()
 
-    save(order: Order) {
+    add(order: Order) {
+        if (this.orders.has(order.reference)) {
+            throw new Error(`order ${order.reference} already exists`)
+        }
         this.orders.set(order.reference, order)
+    }
+
+    replace(order: Order) {
+        if (this.orders.get(order.reference)?.version !== order.version) {
+            return undefined
+        }
+        const stored = { ...order, version: order.version + 1 }
+        this.orders.set(order.reference, stored)
+        return stored
     }
 
     remove(reference: string) {

@@ -33,6 +33,7 @@ export interface Order {
     next_action?: NextAction
     created_at: string
     events: ReceivedEvent[]
+    version: number
 }
 
 export type EventOutcome = "applied" | "stale" | "terminal" | "gap"
@@ -85,6 +86,9 @@ export function applyPaymentEvent(
 }
 
 export function syncWithPayment(order: Order, payment: Payment): Order {
+    if (TERMINAL_STATUSES.has(order.status) && !TERMINAL_STATUSES.has(payment.status)) {
+        return { ...order, payment_id: order.payment_id ?? payment.id }
+    }
     return {
         ...order,
         payment_id: payment.id,

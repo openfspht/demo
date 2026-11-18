@@ -1,3 +1,5 @@
+import type { Payment } from "@openfsp/sdk"
+
 import {
     applyPaymentEvent,
     isKnownEventType,
@@ -50,27 +52,36 @@ export class WebhookReceiver {
         if (this.processed.has(event.id)) {
             return { accepted: true, outcome: "duplicate", summary }
         }
-        const found = this.orders.find(event.reference)
-        if (!found) {
-            return { accepted: true, outcome: "unknown-order", summary }
+        const received = {
+            id: event.id,
+            type: event.type,
+            sequence: event.sequence,
+            status: event.payment.status,
+            nextAction: nextActionOf(event.payment),
         }
-        const order = { ...found, payment_id: found.payment_id ?? event.payment.id }
-        const { order: applied, outcome } = applyPaymentEvent(
-            order,
-            {
-                id: event.id,
-                type: event.type,
-                sequence: event.sequence,
-                status: event.payment.status,
-                nextAction: nextActionOf(event.payment),
-            },
-            this.clock.now().toISOString()
-        )
-        const updated = RESYNC_OUTCOMES.has(outcome)
-            ? syncWithPayment(applied, await this.paymentApi.getPayment(order.payment_id))
-            : applied
-        this.orders.save(updated)
-        this.processed.remember(event.id)
-        return { accepted: true, outcome, summary }
+        const receivedAt = this.clock.now().toISOString()
+        let latest: Payment | undefined
+        for (;;) {
+            const current = this.orders.find(event.reference)
+            if (!current) {
+                return { accepted: true, outcome: "unknown-order", summary }
+            }
+            const { order: applied, outcome } = applyPaymentEvent(
+                { ...current, payment_id: current.payment_id ?? event.payment.id },
+                received,
+                receivedAt
+            )
+            const resync = RESYNC_OUTCOMES.has(outcome)
+            if (resync && !latest) {
+                latest = await this.paymentApi.getPayment(event.payment.id)
+                continue
+            }
+            if (
+                this.orders.replace(resync && latest ? syncWithPayment(applied, latest) : applied)
+            ) {
+                this.processed.remember(event.id)
+                return { accepted: true, outcome, summary }
+            }
+        }
     }
 }
