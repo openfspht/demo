@@ -1,9 +1,11 @@
 import { ApiError, InvalidRequestError } from "@openfsp/sdk"
+import type { Catalog, OrderPage, OrderView } from "#shared/shop"
 
 import { Checkout, InvalidOrder, UnknownOrder } from "../application/checkout"
 import type { WebhookReceiver } from "../application/webhook-receiver"
 import { BrowserSessions } from "./browser-sessions"
 import { readOrderRequest } from "./order-request"
+import { toOrderView } from "./order-view"
 
 const PAGE_SIZE = 12
 const MAX_PAGE_SIZE = 100
@@ -21,7 +23,7 @@ export function routes(
                 Response.json({
                     data: checkout.products(),
                     providers: await checkout.providers(),
-                }),
+                } satisfies Catalog),
         },
         "/api/orders": {
             GET: (request) => {
@@ -35,28 +37,30 @@ export function routes(
                     .list()
                     .filter((order) => sessions.owns(request, order.reference))
                 return Response.json({
-                    data: all.slice(page * size, page * size + size),
+                    data: all.slice(page * size, page * size + size).map(toOrderView),
                     page: {
                         number: page,
                         size,
                         total_elements: all.length,
                         total_pages: Math.ceil(all.length / size),
                     },
-                })
+                } satisfies OrderPage)
             },
             POST: (request) =>
                 handle(async () => {
                     const body = await readOrderRequest(request)
                     const order = await checkout.place(body.lines, body.phone_number, body.provider)
                     sessions.remember(request, order.reference)
-                    return Response.json(order, { status: 201 })
+                    return Response.json(toOrderView(order) satisfies OrderView, { status: 201 })
                 }),
         },
         "/api/orders/:reference": {
             GET: (request) =>
                 handle(async () =>
                     Response.json(
-                        await checkout.read((request.params as { reference: string }).reference)
+                        toOrderView(
+                            await checkout.read((request.params as { reference: string }).reference)
+                        ) satisfies OrderView
                     )
                 ),
         },

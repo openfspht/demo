@@ -1,6 +1,8 @@
 import { useQuery } from "@tanstack/react-query"
 
-import { shop, type Product, type Text } from "@/api/shop"
+import type { Product, Text } from "#shared/shop"
+
+import { shop } from "@/api/shop"
 import { useI18n } from "@/i18n/i18n-provider"
 
 export function useCatalog() {

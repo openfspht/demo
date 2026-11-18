@@ -1,4 +1,4 @@
-import type { Aisle } from "@/api/shop"
+import type { Aisle } from "#shared/shop"
 
 export const AISLES: readonly Aisle[] = ["coffee", "cacao", "fruit", "spirits", "pantry"]
 

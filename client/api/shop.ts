@@ -1,48 +1,4 @@
-import type { EventType, Money, NextAction, Page, PaymentStatus } from "#shared/openfsp"
-
-export type Text = { en: string; fr: string }
-
-export type Aisle = "coffee" | "cacao" | "fruit" | "spirits" | "pantry"
-
-export interface Product {
-    id: string
-    aisle: Aisle
-    name: Text
-    description: Text
-    origin: Text
-    unit: Text
-    price: Money
-}
-
-export interface ShopProvider {
-    id: string
-    name: string
-    logo_url: string | null
-}
-
-export interface OrderLine {
-    product_id: string
-    name: string
-    quantity: number
-    unit_price: Money
-}
-
-export interface Order {
-    reference: string
-    lines: OrderLine[]
-    amount: Money
-    payment_id?: string
-    provider: string
-    status: PaymentStatus
-    next_action?: NextAction
-    created_at: string
-    events: {
-        id: string
-        type: EventType
-        sequence: number
-        received_at: string
-    }[]
-}
+import type { Catalog, OrderPage, OrderRequestBody, OrderView } from "#shared/shop"
 
 export class ShopError extends Error {
     readonly status: number
@@ -72,16 +28,16 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const shop = {
-    catalog: () => request<{ data: Product[]; providers: ShopProvider[] }>("/api/products"),
-    orders: (page: number) => request<Page<Order>>(`/api/orders?page=${page}&size=12`),
-    read: (reference: string) => request<Order>(`/api/orders/${encodeURIComponent(reference)}`),
-    order: (
-        lines: { product_id: string; quantity: number }[],
-        phoneNumber: string,
-        provider: string
-    ) =>
-        request<Order>("/api/orders", {
+    catalog: () => request<Catalog>("/api/products"),
+    orders: (page: number) => request<OrderPage>(`/api/orders?page=${page}&size=12`),
+    read: (reference: string) => request<OrderView>(`/api/orders/${encodeURIComponent(reference)}`),
+    order: (lines: OrderRequestBody["lines"], phoneNumber: string, provider: string) =>
+        request<OrderView>("/api/orders", {
             method: "POST",
-            body: JSON.stringify({ lines, phone_number: phoneNumber, provider }),
+            body: JSON.stringify({
+                lines,
+                phone_number: phoneNumber,
+                provider,
+            } satisfies OrderRequestBody),
         }),
 }

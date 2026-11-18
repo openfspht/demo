@@ -1,14 +1,10 @@
+import type { OrderRequestBody } from "#shared/shop"
+
 import { InvalidOrder } from "../application/checkout"
 
 const MAX_LINES = 50
 
-export interface OrderRequest {
-    lines: { product_id: string; quantity: number }[]
-    phone_number: string
-    provider: string
-}
-
-export async function readOrderRequest(request: Request): Promise<OrderRequest> {
+export async function readOrderRequest(request: Request): Promise<OrderRequestBody> {
     let body: unknown
     try {
         body = await request.json()
@@ -31,7 +27,7 @@ export async function readOrderRequest(request: Request): Promise<OrderRequest> 
     return { lines: lines.map(readLine), phone_number, provider }
 }
 
-function readLine(line: unknown): { product_id: string; quantity: number } {
+function readLine(line: unknown): OrderRequestBody["lines"][number] {
     if (
         !isRecord(line) ||
         typeof line.product_id !== "string" ||

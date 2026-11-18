@@ -23,9 +23,18 @@ const paymentApi: PaymentApi = {
             updatedAt: clock.now(),
             metadata: {},
         }),
-    getPayment: async () => {
-        throw new Error("not used")
-    },
+    getPayment: async (id) =>
+        new Payment({
+            id,
+            reference: id.replace("pay_", ""),
+            status: "pending",
+            amount: Money.htg(350),
+            provider: "mock_alpha",
+            nextAction: { type: "payer_approval" },
+            createdAt: clock.now(),
+            updatedAt: clock.now(),
+            metadata: {},
+        }),
     findPayment: async () => undefined,
     providers: async () => [{ id: "mock_alpha", displayName: "Alpha (mock)" }],
 }
@@ -83,6 +92,37 @@ describe("orders", () => {
         expect((await listed(cookie)).sort()).toEqual([own, second].sort())
         expect(await listed()).toEqual([])
         expect(await listed("shop_session=guessed")).toEqual([])
+    })
+})
+
+describe("order responses", () => {
+    const PUBLIC_FIELDS = [
+        "amount",
+        "created_at",
+        "events",
+        "lines",
+        "next_action",
+        "provider",
+        "reference",
+        "status",
+    ]
+
+    test("carry only the public fields of an order", async () => {
+        const created = (await (await place()).json()) as Record<string, unknown>
+        expect(Object.keys(created).sort()).toEqual(PUBLIC_FIELDS)
+
+        const read = await fetch(new URL(`/api/orders/${String(created.reference)}`, server.url))
+        expect(read.status).toBe(200)
+        expect(Object.keys((await read.json()) as object).sort()).toEqual(PUBLIC_FIELDS)
+    })
+
+    test("serve an order by its reference to a browser without the session, as a bearer link", async () => {
+        const { reference } = (await (await place()).json()) as { reference: string }
+        const read = await fetch(new URL(`/api/orders/${reference}`, server.url), {
+            headers: { Cookie: "shop_session=other" },
+        })
+        expect(read.status).toBe(200)
+        expect(await read.json()).toMatchObject({ reference })
     })
 })
 

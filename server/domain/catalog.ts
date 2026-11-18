@@ -1,18 +1,5 @@
 import type { Money } from "#shared/openfsp"
-
-export type Text = { en: string; fr: string }
-
-export type Aisle = "coffee" | "cacao" | "fruit" | "spirits" | "pantry"
-
-export interface Product {
-    id: string
-    aisle: Aisle
-    name: Text
-    description: Text
-    origin: Text
-    unit: Text
-    price: Money
-}
+import type { Product } from "#shared/shop"
 
 const htg = (gourdes: number): Money => ({
     amount: gourdes * 100,

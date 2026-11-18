@@ -6,7 +6,7 @@ import {
     type PaymentRequest,
 } from "@openfsp/sdk"
 import { isE164, toE164 } from "#shared/phone"
-import type { Product } from "../domain/catalog"
+import type { Product, ShopProvider } from "#shared/shop"
 import { adoptCreatedPayment, syncWithPayment, type Order } from "../domain/order"
 import type { Clock, Orders, PaymentApi } from "./ports"
 
@@ -32,12 +32,6 @@ export class InvalidOrder extends Error {
 }
 
 export class UnknownOrder extends Error {}
-
-export interface ShopProvider {
-    id: string
-    name: string
-    logo_url: string | null
-}
 
 export interface CheckoutSettings {
     providers?: string[]
