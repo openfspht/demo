@@ -2,8 +2,6 @@ import type { Payment } from "@openfsp/sdk"
 
 import {
     applyPaymentEvent,
-    isKnownEventType,
-    nextActionOf,
     RESYNC_OUTCOMES,
     syncWithPayment,
     type EventOutcome,
@@ -14,7 +12,7 @@ export type Reception =
     | { accepted: false; reason: string }
     | {
           accepted: true
-          outcome: EventOutcome | "duplicate" | "unknown-order" | "ignored"
+          outcome: EventOutcome | "duplicate" | "unknown-order"
           summary: string
       }
 
@@ -46,9 +44,6 @@ export class WebhookReceiver {
         }
         const event = result.event
         const summary = `${event.type} #${event.sequence} for ${event.reference}`
-        if (!isKnownEventType(event.type)) {
-            return { accepted: true, outcome: "ignored", summary }
-        }
         if (this.processed.has(event.id)) {
             return { accepted: true, outcome: "duplicate", summary }
         }
@@ -57,7 +52,7 @@ export class WebhookReceiver {
             type: event.type,
             sequence: event.sequence,
             status: event.payment.status,
-            nextAction: nextActionOf(event.payment),
+            nextAction: event.payment.nextAction,
         }
         const receivedAt = this.clock.now().toISOString()
         let latest: Payment | undefined

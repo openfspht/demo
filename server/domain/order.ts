@@ -1,16 +1,9 @@
-import type { Payment } from "@openfsp/sdk"
-import {
-    EVENT_TYPES,
-    TERMINAL_STATUSES,
-    type EventType,
-    type Money,
-    type NextAction,
-    type PaymentStatus,
-} from "#shared/openfsp"
+import type { NextAction, Payment, PaymentEventType, PaymentStatus } from "@openfsp/sdk"
+import type { Money } from "#shared/openfsp"
 
 export interface ReceivedEvent {
     id: string
-    type: EventType
+    type: PaymentEventType
     sequence: number
     received_at: string
 }
@@ -40,17 +33,13 @@ export type EventOutcome = "applied" | "stale" | "terminal" | "gap"
 
 export const RESYNC_OUTCOMES: ReadonlySet<EventOutcome> = new Set(["terminal", "gap"])
 
-const KNOWN_EVENT_TYPES: ReadonlySet<string> = new Set(EVENT_TYPES)
-
-export function isKnownEventType(type: string): type is EventType {
-    return KNOWN_EVENT_TYPES.has(type)
-}
+const isTerminal = (status: PaymentStatus) => status !== "pending"
 
 export function applyPaymentEvent(
     order: Order,
     event: {
         id: string
-        type: EventType
+        type: PaymentEventType
         sequence: number
         status: PaymentStatus
         nextAction?: NextAction
@@ -73,7 +62,7 @@ export function applyPaymentEvent(
             },
         ],
     }
-    if (TERMINAL_STATUSES.has(order.status) && event.status !== order.status) {
+    if (isTerminal(order.status) && event.status !== order.status) {
         return { order: recorded, outcome: "terminal" }
     }
     if (event.sequence > last + 1) {
@@ -86,14 +75,14 @@ export function applyPaymentEvent(
 }
 
 export function syncWithPayment(order: Order, payment: Payment): Order {
-    if (TERMINAL_STATUSES.has(order.status) && !TERMINAL_STATUSES.has(payment.status)) {
+    if (isTerminal(order.status) && !payment.isTerminal) {
         return { ...order, payment_id: order.payment_id ?? payment.id }
     }
     return {
         ...order,
         payment_id: payment.id,
         status: payment.status,
-        next_action: nextActionOf(payment),
+        next_action: payment.nextAction,
     }
 }
 
@@ -101,16 +90,4 @@ export function adoptCreatedPayment(order: Order, payment: Payment): Order {
     return order.events.length > 0
         ? { ...order, payment_id: payment.id }
         : syncWithPayment(order, payment)
-}
-
-export function nextActionOf(payment: Payment): NextAction {
-    const action = payment.nextAction
-    if (action.type === "redirect") {
-        return {
-            type: "redirect",
-            redirect_url: action.url,
-            ...(action.expiresAt ? { expires_at: action.expiresAt.toISOString() } : {}),
-        }
-    }
-    return { type: action.type }
 }

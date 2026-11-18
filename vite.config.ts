@@ -22,6 +22,24 @@ export default defineConfig({
         },
         overrides: [
             {
+                files: ["client/**", "shared/**"],
+                excludeFiles: ["shared/**/*.test.ts"],
+                rules: {
+                    "typescript/no-restricted-imports": [
+                        "error",
+                        {
+                            paths: [
+                                {
+                                    name: "@openfsp/sdk",
+                                    message: "The browser bundle must not ship the SDK runtime.",
+                                    allowTypeImports: true,
+                                },
+                            ],
+                        },
+                    ],
+                },
+            },
+            {
                 files: ["**/*.test.ts"],
                 rules: {
                     "typescript/await-thenable": "off",

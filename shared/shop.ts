@@ -1,4 +1,4 @@
-import type { EventType, Money, NextAction, Page, PaymentStatus } from "./openfsp"
+import type { Money, NextAction, Page, PaymentEventType, PaymentStatus } from "./openfsp"
 
 export type Text = { en: string; fr: string }
 
@@ -34,7 +34,7 @@ export interface OrderLineView {
 
 export interface OrderEventView {
     id: string
-    type: EventType
+    type: PaymentEventType
     sequence: number
     received_at: string
 }

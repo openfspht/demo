@@ -1,22 +1,13 @@
-export type Timestamp = string
+import type { PaymentEventType, PaymentStatus } from "@openfsp/sdk"
 
-export type Currency = "HTG"
+export type { PaymentEventType, PaymentStatus }
+
+export type Timestamp = string
 
 export interface Money {
     amount: number
-    currency: Currency
+    currency: "HTG"
 }
-
-export const PAYMENT_STATUSES = ["pending", "succeeded", "failed", "expired", "canceled"] as const
-
-export type PaymentStatus = (typeof PAYMENT_STATUSES)[number]
-
-export const TERMINAL_STATUSES: ReadonlySet<PaymentStatus> = new Set([
-    "succeeded",
-    "failed",
-    "expired",
-    "canceled",
-])
 
 export type NextAction =
     | { type: "redirect"; redirect_url: string; expires_at?: Timestamp }
@@ -34,13 +25,3 @@ export interface Page<T> {
     data: T[]
     page: PageInfo
 }
-
-export const EVENT_TYPES = [
-    "payment.created",
-    "payment.succeeded",
-    "payment.failed",
-    "payment.expired",
-    "payment.canceled",
-] as const
-
-export type EventType = (typeof EVENT_TYPES)[number]

@@ -1,3 +1,5 @@
+import type { NextAction as PaymentNextAction } from "@openfsp/sdk"
+import type { NextAction } from "#shared/openfsp"
 import type { OrderView } from "#shared/shop"
 
 import type { Order } from "../domain/order"
@@ -14,7 +16,7 @@ export function toOrderView(order: Order): OrderView {
         amount: order.amount,
         provider: order.provider,
         status: order.status,
-        ...(order.next_action ? { next_action: order.next_action } : {}),
+        ...(order.next_action ? { next_action: toNextActionView(order.next_action) } : {}),
         created_at: order.created_at,
         events: order.events.map((event) => ({
             id: event.id,
@@ -23,4 +25,15 @@ export function toOrderView(order: Order): OrderView {
             received_at: event.received_at,
         })),
     }
+}
+
+function toNextActionView(action: PaymentNextAction): NextAction {
+    if (action.type === "redirect") {
+        return {
+            type: "redirect",
+            redirect_url: action.url,
+            ...(action.expiresAt ? { expires_at: action.expiresAt.toISOString() } : {}),
+        }
+    }
+    return { type: action.type }
 }
