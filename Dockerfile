@@ -33,4 +33,6 @@ ENV PORT=3000
 
 EXPOSE 3000
 
+HEALTHCHECK --interval=10s --timeout=5s --start-period=10s --retries=5 CMD ["bun", "-e", "process.exit((await fetch('http://127.0.0.1:3000/health')).ok ? 0 : 1)"]
+
 ENTRYPOINT ["bun", "--preload", "./server/instrument.ts", "server/main.ts"]
