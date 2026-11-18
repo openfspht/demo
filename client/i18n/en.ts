@@ -1,3 +1,5 @@
+import type { ShopErrorCode } from "#shared/shop"
+
 export const en = {
     shop: "TiMache",
     tagline: "A selection of Haitian local products.",
@@ -76,6 +78,21 @@ export const en = {
         source: "Status retrieved from the payment server.",
         notFound: "No order matches this reference. Check the reference used.",
     },
+    errors: {
+        "invalid-body": "The shop could not read the order. Reload the page and try again.",
+        "invalid-line":
+            "A product in your cart is no longer offered or its quantity is not between 1 and 20.",
+        "empty-cart": "Your cart is empty.",
+        "unknown-provider": "This payment service is not available. Choose another one.",
+        "invalid-phone":
+            "Enter a phone number such as +509 40 00 0000 or the eight-digit national number.",
+        "rejected-request":
+            "The payment request was refused. Check the phone number and try again.",
+        "attempt-conflict": "Your cart changed during the payment. Try again.",
+        "unknown-order": "No order matches this reference. Check the reference used.",
+        payment:
+            "The payment server could not create the payment. Try again: the same order will be resumed.",
+    } satisfies Record<ShopErrorCode | "payment", string>,
     orders: {
         title: "Your orders",
         empty: "No order yet.",

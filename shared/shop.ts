@@ -58,3 +58,18 @@ export interface OrderRequestBody {
     phone_number: string
     provider: string
 }
+
+export type InvalidOrderCode =
+    | "invalid-body"
+    | "invalid-line"
+    | "empty-cart"
+    | "unknown-provider"
+    | "invalid-phone"
+    | "rejected-request"
+
+export type ShopErrorCode = InvalidOrderCode | "attempt-conflict" | "unknown-order"
+
+export interface ErrorBody {
+    code: string
+    detail?: string
+}

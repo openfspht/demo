@@ -1,11 +1,13 @@
-import type { Catalog, OrderPage, OrderRequestBody, OrderView } from "#shared/shop"
+import type { Catalog, ErrorBody, OrderPage, OrderRequestBody, OrderView } from "#shared/shop"
 
 export class ShopError extends Error {
     readonly status: number
+    readonly code: string | undefined
 
-    constructor(message: string, status: number) {
-        super(message)
+    constructor(status: number, body: Partial<ErrorBody>) {
+        super(body.detail ?? `the shop answered ${status}`)
         this.status = status
+        this.code = typeof body.code === "string" ? body.code : undefined
     }
 }
 
@@ -16,13 +18,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     })
     const payload = await response.json().catch(() => ({}))
     if (!response.ok) {
-        throw new ShopError(
-            payload.detail ??
-                payload.title ??
-                payload.error ??
-                `${path} answered ${response.status}`,
-            response.status
-        )
+        throw new ShopError(response.status, payload as Partial<ErrorBody>)
     }
     return payload as T
 }

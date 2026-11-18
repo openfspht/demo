@@ -1,5 +1,5 @@
 import { ApiError, InvalidRequestError } from "@openfsp/sdk"
-import type { Catalog, OrderPage, OrderView } from "#shared/shop"
+import type { Catalog, ErrorBody, OrderPage, OrderView, ShopErrorCode } from "#shared/shop"
 
 import { AttemptConflict, Checkout, InvalidOrder, UnknownOrder } from "../application/checkout"
 import type { WebhookReceiver } from "../application/webhook-receiver"
@@ -96,35 +96,31 @@ async function handle(work: () => Promise<Response>): Promise<Response> {
         return await work()
     } catch (error) {
         if (error instanceof InvalidOrder) {
-            return Response.json({ code: error.code, detail: error.message }, { status: 400 })
+            return failure(400, error.code, error.message)
         }
         if (error instanceof InvalidRequestError) {
-            return Response.json(
-                { code: "rejected-request", detail: error.message },
-                { status: 400 }
-            )
+            return failure(400, "rejected-request", error.message)
         }
         if (error instanceof AttemptConflict) {
-            return Response.json(
-                {
-                    code: "attempt-conflict",
-                    detail: "this purchase attempt was already used for another cart",
-                },
-                { status: 409 }
+            return failure(
+                409,
+                "attempt-conflict",
+                "this purchase attempt was already used for another cart"
             )
         }
         if (error instanceof UnknownOrder) {
-            return Response.json(
-                { code: "unknown-order", detail: "no order matches this reference" },
-                { status: 404 }
-            )
+            return failure(404, "unknown-order", "no order matches this reference")
         }
         if (error instanceof ApiError) {
             return Response.json(
-                { code: error.code, title: error.title, detail: error.detail },
+                { code: error.code, detail: error.detail ?? error.title } satisfies ErrorBody,
                 { status: error.status }
             )
         }
         throw error
     }
+}
+
+function failure(status: number, code: ShopErrorCode, detail: string): Response {
+    return Response.json({ code, detail } satisfies ErrorBody, { status })
 }

@@ -9,6 +9,7 @@ import { cartStore } from "@/features/cart/cart"
 import { attemptStore, type Purchase } from "@/features/checkout/attempt"
 import { useCartLines } from "@/features/cart/cart-page"
 import { useCatalog } from "@/features/catalog/use-catalog"
+import { errorText } from "@/i18n/error-text"
 import { useI18n } from "@/i18n/i18n-provider"
 import { Price, Stations, TornEdge } from "@/ui/paper"
 
@@ -119,7 +120,7 @@ export function CheckoutPage() {
                     </div>
                     {pay.isError && (
                         <p className="error" role="alert">
-                            {pay.error.message}
+                            {errorText(t, pay.error)}
                         </p>
                     )}
                     <button

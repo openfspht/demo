@@ -6,21 +6,13 @@ import {
     type PaymentRequest,
 } from "@openfsp/sdk"
 import { isE164, toE164 } from "#shared/phone"
-import type { Product, ShopProvider } from "#shared/shop"
+import type { InvalidOrderCode, Product, ShopProvider } from "#shared/shop"
 import { adoptCreatedPayment, syncWithPayment, type Order } from "../domain/order"
 import type { Clock, Orders, PaymentApi } from "./ports"
 
 const MAX_QUANTITY = 20
 const MAX_DESCRIPTION = 200
 const REFERENCE_LENGTH = 12
-
-export type InvalidOrderCode =
-    | "invalid-body"
-    | "invalid-line"
-    | "empty-cart"
-    | "unknown-provider"
-    | "invalid-phone"
-    | "rejected-request"
 
 export class InvalidOrder extends Error {
     readonly code: InvalidOrderCode

@@ -82,6 +82,23 @@ export const fr: Messages = {
         notFound:
             "Aucune commande ne correspond à cette référence. Vérifiez la référence utilisée.",
     },
+    errors: {
+        "invalid-body":
+            "La boutique n'a pas pu lire la commande. Rechargez la page, puis réessayez.",
+        "invalid-line":
+            "Un produit du panier n'est plus proposé ou sa quantité n'est pas comprise entre 1 et 20.",
+        "empty-cart": "Votre panier est vide.",
+        "unknown-provider": "Ce service de paiement n'est pas disponible. Choisissez-en un autre.",
+        "invalid-phone":
+            "Saisissez un numéro comme +509 40 00 0000 ou les huit chiffres du numéro national.",
+        "rejected-request":
+            "La demande de paiement a été refusée. Vérifiez le numéro, puis réessayez.",
+        "attempt-conflict": "Votre panier a changé pendant le paiement. Réessayez.",
+        "unknown-order":
+            "Aucune commande ne correspond à cette référence. Vérifiez la référence utilisée.",
+        payment:
+            "Le serveur de paiement n'a pas pu créer le paiement. Réessayez : la même commande sera reprise.",
+    },
     orders: {
         title: "Vos commandes",
         empty: "Aucune commande pour l'instant.",
