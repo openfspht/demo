@@ -18,6 +18,10 @@ export function toE164(input: string, countryCode: string = HAITI): string {
     return compact
 }
 
+export function isE164(value: string): boolean {
+    return E164.test(value)
+}
+
 const HAITIAN_E164 = /^\+509(\d{2})(\d{2})(\d{4})$/
 
 export function formatPhoneNumber(input: string): string {

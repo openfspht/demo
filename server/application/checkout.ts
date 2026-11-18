@@ -1,5 +1,11 @@
-import { ApiError, Money, type PaymentRequest } from "@openfsp/sdk"
-import { toE164 } from "#shared/phone"
+import {
+    ApiError,
+    InvalidRequestError,
+    Money,
+    TransportError,
+    type PaymentRequest,
+} from "@openfsp/sdk"
+import { isE164, toE164 } from "#shared/phone"
 import type { Product } from "../domain/catalog"
 import { adoptCreatedPayment, syncWithPayment, type Order } from "../domain/order"
 import type { Clock, Orders, PaymentApi } from "./ports"
@@ -8,7 +14,22 @@ const MAX_QUANTITY = 20
 const MAX_DESCRIPTION = 200
 const REFERENCE_LENGTH = 12
 
-export class InvalidOrder extends Error {}
+export type InvalidOrderCode =
+    | "invalid-body"
+    | "invalid-line"
+    | "empty-cart"
+    | "unknown-provider"
+    | "invalid-phone"
+    | "rejected-request"
+
+export class InvalidOrder extends Error {
+    readonly code: InvalidOrderCode
+
+    constructor(code: InvalidOrderCode, message: string) {
+        super(message)
+        this.code = code
+    }
+}
 
 export class UnknownOrder extends Error {}
 
@@ -76,7 +97,8 @@ export class Checkout {
                 quantity > MAX_QUANTITY
             ) {
                 throw new InvalidOrder(
-                    "each line needs a known product and a quantity from 1 to 20"
+                    "invalid-line",
+                    `each line needs a known product and a quantity from 1 to ${MAX_QUANTITY}`
                 )
             }
             return {
@@ -86,11 +108,19 @@ export class Checkout {
                 unit_price: product.price,
             }
         })
-        const known = (await this.providers()).some((candidate) => candidate.id === provider)
-        if (lines.length === 0 || !known) {
+        if (lines.length === 0) {
+            throw new InvalidOrder("empty-cart", "a cart needs at least one line")
+        }
+        const payerPhoneNumber = phoneNumber.trim() ? toE164(phoneNumber) : undefined
+        if (payerPhoneNumber !== undefined && !isE164(payerPhoneNumber)) {
             throw new InvalidOrder(
-                "a cart with at least one line and a known provider are required"
+                "invalid-phone",
+                "phone_number must be an E.164 number such as +50934567890 or an eight-digit Haitian number"
             )
+        }
+        const known = (await this.providers()).some((candidate) => candidate.id === provider)
+        if (!known) {
+            throw new InvalidOrder("unknown-provider", `${provider} is not an offered provider`)
         }
         const amount = {
             amount: lines.reduce(
@@ -104,7 +134,7 @@ export class Checkout {
             reference,
             amount: Money.centimes(amount.amount),
             provider,
-            ...(phoneNumber.trim() ? { payerPhoneNumber: toE164(phoneNumber) } : {}),
+            ...(payerPhoneNumber ? { payerPhoneNumber } : {}),
             description: lines
                 .map((line) => `${line.quantity} x ${line.name}`)
                 .join(", ")
@@ -170,7 +200,14 @@ export class Checkout {
         try {
             return await this.paymentApi.createPayment(request, order.idempotency_key)
         } catch (failure) {
-            if (failure instanceof ApiError && failure.effect === "none") {
+            if (failure instanceof InvalidRequestError) {
+                this.orders.remove(order.reference)
+                throw new InvalidOrder("rejected-request", failure.message)
+            }
+            if (
+                (failure instanceof ApiError || failure instanceof TransportError) &&
+                failure.effect === "none"
+            ) {
                 this.orders.remove(order.reference)
             }
             throw failure

@@ -1,8 +1,9 @@
-import { ApiError } from "@openfsp/sdk"
+import { ApiError, InvalidRequestError } from "@openfsp/sdk"
 
 import { Checkout, InvalidOrder, UnknownOrder } from "../application/checkout"
 import type { WebhookReceiver } from "../application/webhook-receiver"
 import { BrowserSessions } from "./browser-sessions"
+import { readOrderRequest } from "./order-request"
 
 const PAGE_SIZE = 12
 const MAX_PAGE_SIZE = 100
@@ -45,16 +46,8 @@ export function routes(
             },
             POST: (request) =>
                 handle(async () => {
-                    const body = (await request.json()) as {
-                        lines?: { product_id: string; quantity: number }[]
-                        phone_number?: string
-                        provider?: string
-                    }
-                    const order = await checkout.place(
-                        Array.isArray(body.lines) ? body.lines : [],
-                        body.phone_number ?? "",
-                        body.provider ?? ""
-                    )
+                    const body = await readOrderRequest(request)
+                    const order = await checkout.place(body.lines, body.phone_number, body.provider)
                     sessions.remember(request, order.reference)
                     return Response.json(order, { status: 201 })
                 }),
@@ -92,10 +85,19 @@ async function handle(work: () => Promise<Response>): Promise<Response> {
         return await work()
     } catch (error) {
         if (error instanceof InvalidOrder) {
-            return Response.json({ error: error.message }, { status: 400 })
+            return Response.json({ code: error.code, detail: error.message }, { status: 400 })
+        }
+        if (error instanceof InvalidRequestError) {
+            return Response.json(
+                { code: "rejected-request", detail: error.message },
+                { status: 400 }
+            )
         }
         if (error instanceof UnknownOrder) {
-            return Response.json({ error: "unknown order" }, { status: 404 })
+            return Response.json(
+                { code: "unknown-order", detail: "no order matches this reference" },
+                { status: 404 }
+            )
         }
         if (error instanceof ApiError) {
             return Response.json(

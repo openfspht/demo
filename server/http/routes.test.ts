@@ -85,3 +85,64 @@ describe("orders", () => {
         expect(await listed("shop_session=guessed")).toEqual([])
     })
 })
+
+describe("order requests", () => {
+    const post = (body: string) =>
+        fetch(new URL("/api/orders", server.url), {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body,
+        })
+
+    test.each([
+        ["malformed JSON", "{lines:", "invalid-body"],
+        ["an array body", "[]", "invalid-body"],
+        [
+            "lines that are not an array",
+            JSON.stringify({ lines: "coffee", provider: "mock_alpha" }),
+            "invalid-body",
+        ],
+        [
+            "a provider that is not a string",
+            JSON.stringify({ lines: [], provider: 1 }),
+            "invalid-body",
+        ],
+        [
+            "a phone number that is not a string",
+            JSON.stringify({
+                lines: [{ product_id: "coffee", quantity: 1 }],
+                provider: "mock_alpha",
+                phone_number: 509,
+            }),
+            "invalid-body",
+        ],
+        [
+            "a line that is not an object",
+            JSON.stringify({ lines: ["coffee"], provider: "mock_alpha" }),
+            "invalid-line",
+        ],
+        [
+            "a quantity that is not a number",
+            JSON.stringify({
+                lines: [{ product_id: "coffee", quantity: "2" }],
+                provider: "mock_alpha",
+            }),
+            "invalid-line",
+        ],
+        [
+            "a phone number that is not E.164",
+            JSON.stringify({
+                lines: [{ product_id: "coffee", quantity: 1 }],
+                provider: "mock_alpha",
+                phone_number: "1234",
+            }),
+            "invalid-phone",
+        ],
+    ])("answers 400 to %s without keeping an order", async (_, body, code) => {
+        const before = orders.all().length
+        const response = await post(body)
+        expect(response.status).toBe(400)
+        expect(await response.json()).toMatchObject({ code })
+        expect(orders.all()).toHaveLength(before)
+    })
+})

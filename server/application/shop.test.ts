@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test"
 import {
     ApiError,
+    InvalidRequestError,
     Money,
     Payment,
     PaymentEvent,
@@ -143,6 +144,37 @@ describe("checkout", () => {
         expect(
             checkout.place([{ product_id: "coffee", quantity: 21 }], "", "mock_alpha")
         ).rejects.toBeInstanceOf(InvalidOrder)
+    })
+
+    test("refuses a phone number that is not E.164 before saving or calling the server", async () => {
+        let calls = 0
+        const { checkout, orders } = setUp({
+            ...paymentApi,
+            createPayment: async () => {
+                calls += 1
+                return payment()
+            },
+        })
+        for (const phone of ["1234", "+509 abc", "0050934567890"]) {
+            await expect(
+                checkout.place([{ product_id: "coffee", quantity: 1 }], phone, "mock_alpha")
+            ).rejects.toMatchObject({ code: "invalid-phone" })
+        }
+        expect(calls).toBe(0)
+        expect(orders.all()).toHaveLength(0)
+    })
+
+    test("forgets the order when the SDK refuses the request before sending it", async () => {
+        const { checkout, orders } = setUp({
+            ...paymentApi,
+            createPayment: async () => {
+                throw new InvalidRequestError("payerPhoneNumber must be in E.164 format")
+            },
+        })
+        await expect(
+            checkout.place([{ product_id: "coffee", quantity: 1 }], "", "mock_alpha")
+        ).rejects.toMatchObject({ code: "rejected-request" })
+        expect(orders.all()).toHaveLength(0)
     })
 
     test("refuses an unknown provider", async () => {
