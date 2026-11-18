@@ -19,16 +19,18 @@ A public instance runs at [demo.openfsp.org](https://demo.openfsp.org), connecte
 
 ## Run it
 
-With the demonstration environment of [openfspht/openfsp](https://github.com/openfspht/openfsp), which pulls the shop image:
+With the demonstration environment of [openfspht/openfsp](https://github.com/openfspht/openfsp), which pulls the shop image.
+In the openfsp repository, create the gateway key first:
 
 ```sh
-docker compose --profile demo up    # in the openfsp repository, shop on http://localhost:3000
+make keys                           # writes OPENFSP_APP_KEY to .env
+docker compose --profile demo up    # shop on http://localhost:3000
 ```
 
 From source, with Bun and an OpenFSP server at `127.0.0.1:8080`:
 
 ```sh
-git clone git@github.com:openfspht/demo.git
+git clone git@github.com:openfspht/demo.git && cd demo
 bun install
 OPENFSP_API_KEY=... bun run dev     # http://localhost:5174
 bun run check && bun run test
