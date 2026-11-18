@@ -33,24 +33,29 @@ export function routes(
                     MAX_PAGE_SIZE
                 )
                 const page = Math.max(Number(query.get("page")) || 0, 0)
-                const all = checkout
-                    .list()
-                    .filter((order) => sessions.owns(request, order.reference))
+                const session = sessions.current(request)
+                const { orders, total } = session
+                    ? checkout.list(session, page, size)
+                    : { orders: [], total: 0 }
                 return Response.json({
-                    data: all.slice(page * size, page * size + size).map(toOrderView),
+                    data: orders.map(toOrderView),
                     page: {
                         number: page,
                         size,
-                        total_elements: all.length,
-                        total_pages: Math.ceil(all.length / size),
+                        total_elements: total,
+                        total_pages: Math.ceil(total / size),
                     },
                 } satisfies OrderPage)
             },
             POST: (request) =>
                 handle(async () => {
                     const body = await readOrderRequest(request)
-                    const order = await checkout.place(body.lines, body.phone_number, body.provider)
-                    sessions.remember(request, order.reference)
+                    const order = await checkout.place(
+                        sessions.open(request),
+                        body.lines,
+                        body.phone_number,
+                        body.provider
+                    )
                     return Response.json(toOrderView(order) satisfies OrderView, { status: 201 })
                 }),
         },

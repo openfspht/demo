@@ -17,6 +17,7 @@ export interface OrderLine {
 
 export interface Order {
     reference: string
+    session_id: string
     lines: OrderLine[]
     amount: Money
     idempotency_key: string

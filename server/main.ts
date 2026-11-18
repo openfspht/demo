@@ -16,7 +16,8 @@ import {
 } from "./infrastructure/adapters"
 
 const config = readConfig(process.env)
-const orders = new InMemoryOrders()
+const DAY_MS = 86_400_000
+const orders = new InMemoryOrders({ capacity: 10_000, maxAgeMs: 7 * DAY_MS, clock: systemClock })
 const openfsp = new OpenFsp({
     baseUrl: config.baseUrl,
     apiKey: config.apiKey,
@@ -31,7 +32,7 @@ const checkout = new Checkout(catalog, paymentApi, orders, systemClock, {
 const receiver = new WebhookReceiver(
     new SignedWebhooks(openfsp),
     orders,
-    new InMemoryProcessedEvents(),
+    new InMemoryProcessedEvents({ capacity: 100_000, maxAgeMs: 7 * DAY_MS, clock: systemClock }),
     paymentApi,
     systemClock
 )

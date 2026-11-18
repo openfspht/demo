@@ -49,47 +49,113 @@ export class SignedWebhooks implements WebhookAuthenticity {
     }
 }
 
+export interface Retention {
+    capacity: number
+    maxAgeMs: number
+    clock: Clock
+}
+
 export class InMemoryOrders implements Orders {
-    private readonly orders = new Map<string, Order>()
+    private readonly orders = new Map<string, { order: Order; addedAt: number }>()
+    private readonly bySession = new Map<string, string[]>()
+    private readonly retention: Retention
+
+    constructor(retention: Retention) {
+        this.retention = retention
+    }
 
     add(order: Order) {
         if (this.orders.has(order.reference)) {
             throw new Error(`order ${order.reference} already exists`)
         }
-        this.orders.set(order.reference, order)
+        this.evict()
+        this.orders.set(order.reference, { order, addedAt: this.retention.clock.now().getTime() })
+        this.bySession.set(order.session_id, [
+            ...(this.bySession.get(order.session_id) ?? []),
+            order.reference,
+        ])
     }
 
     replace(order: Order) {
-        if (this.orders.get(order.reference)?.version !== order.version) {
+        const entry = this.orders.get(order.reference)
+        if (entry?.order.version !== order.version) {
             return undefined
         }
         const stored = { ...order, version: order.version + 1 }
-        this.orders.set(order.reference, stored)
+        this.orders.set(order.reference, { order: stored, addedAt: entry.addedAt })
         return stored
     }
 
     remove(reference: string) {
+        const entry = this.orders.get(reference)
+        if (!entry) {
+            return
+        }
         this.orders.delete(reference)
+        const owned = (this.bySession.get(entry.order.session_id) ?? []).filter(
+            (candidate) => candidate !== reference
+        )
+        if (owned.length > 0) {
+            this.bySession.set(entry.order.session_id, owned)
+        } else {
+            this.bySession.delete(entry.order.session_id)
+        }
     }
 
     find(reference: string) {
-        return this.orders.get(reference)
+        return this.orders.get(reference)?.order
     }
 
-    all() {
-        return [...this.orders.values()]
+    ofSession(session: string, offset: number, limit: number) {
+        const owned = this.bySession.get(session) ?? []
+        const end = owned.length - offset
+        return {
+            orders: owned
+                .slice(Math.max(end - limit, 0), Math.max(end, 0))
+                .reverse()
+                .map((reference) => this.orders.get(reference)!.order),
+            total: owned.length,
+        }
+    }
+
+    private evict() {
+        const oldest = this.retention.clock.now().getTime() - this.retention.maxAgeMs
+        for (const [reference, entry] of this.orders) {
+            if (this.orders.size < this.retention.capacity && entry.addedAt > oldest) {
+                return
+            }
+            this.remove(reference)
+        }
     }
 }
 
 export class InMemoryProcessedEvents implements ProcessedEvents {
-    private readonly seen = new Set<string>()
+    private readonly seen = new Map<string, number>()
+    private readonly retention: Retention
+
+    constructor(retention: Retention) {
+        this.retention = retention
+    }
 
     has(eventId: string): boolean {
-        return this.seen.has(eventId)
+        const rememberedAt = this.seen.get(eventId)
+        return rememberedAt !== undefined && rememberedAt > this.oldest()
     }
 
     remember(eventId: string) {
-        this.seen.add(eventId)
+        const oldest = this.oldest()
+        for (const [id, rememberedAt] of this.seen) {
+            if (this.seen.size < this.retention.capacity && rememberedAt > oldest) {
+                break
+            }
+            this.seen.delete(id)
+        }
+        this.seen.delete(eventId)
+        this.seen.set(eventId, this.retention.clock.now().getTime())
+    }
+
+    private oldest() {
+        return this.retention.clock.now().getTime() - this.retention.maxAgeMs
     }
 }
 

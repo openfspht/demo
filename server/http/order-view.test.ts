@@ -7,6 +7,7 @@ import { toOrderView } from "./order-view"
 
 const placed: Order = {
     reference: "INV-184",
+    session_id: "session",
     lines: [],
     amount: { amount: 125_000, currency: "HTG" },
     idempotency_key: "key",

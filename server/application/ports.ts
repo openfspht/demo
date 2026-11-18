@@ -15,7 +15,7 @@ export interface Orders {
     replace(order: Order): Order | undefined
     remove(reference: string): void
     find(reference: string): Order | undefined
-    all(): Order[]
+    ofSession(session: string, offset: number, limit: number): { orders: Order[]; total: number }
 }
 
 export interface ProcessedEvents {

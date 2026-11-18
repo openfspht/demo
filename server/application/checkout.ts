@@ -78,6 +78,7 @@ export class Checkout {
     }
 
     async place(
+        session: string,
         requested: { product_id: string; quantity: number }[],
         phoneNumber: string,
         provider: string
@@ -140,6 +141,7 @@ export class Checkout {
         }
         const placed: Order = {
             reference,
+            session_id: session,
             lines,
             amount,
             idempotency_key: crypto.randomUUID(),
@@ -208,9 +210,7 @@ export class Checkout {
         }
     }
 
-    list(): Order[] {
-        return this.orders
-            .all()
-            .sort((left, right) => right.created_at.localeCompare(left.created_at))
+    list(session: string, page: number, size: number): { orders: Order[]; total: number } {
+        return this.orders.ofSession(session, page * size, size)
     }
 }

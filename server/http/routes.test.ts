@@ -10,6 +10,10 @@ import { routes } from "./routes"
 
 const clock = { now: () => new Date("2026-11-09T15:00:00Z") }
 
+const SESSION = "0b0c3f52-1c43-4d5e-9a3b-6f1e2d7c8a90"
+
+const retention = { capacity: 100, maxAgeMs: 86_400_000, clock }
+
 const paymentApi: PaymentApi = {
     createPayment: async (request) =>
         new Payment({
@@ -43,7 +47,7 @@ const unsigned: WebhookAuthenticity = {
     verify: async () => ({ verified: false, reason: "unsigned" }),
 }
 
-const orders = new InMemoryOrders()
+const orders = new InMemoryOrders(retention)
 const server = Bun.serve({
     port: 0,
     hostname: "127.0.0.1",
@@ -51,7 +55,13 @@ const server = Bun.serve({
         new Checkout(catalog, paymentApi, orders, clock, {
             publicUrl: "https://shop.example",
         }),
-        new WebhookReceiver(unsigned, orders, new InMemoryProcessedEvents(), paymentApi, clock)
+        new WebhookReceiver(
+            unsigned,
+            orders,
+            new InMemoryProcessedEvents(retention),
+            paymentApi,
+            clock
+        )
     ),
 })
 afterAll(() => server.stop(true))
@@ -130,7 +140,7 @@ describe("order requests", () => {
     const post = (body: string) =>
         fetch(new URL("/api/orders", server.url), {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type": "application/json", Cookie: `shop_session=${SESSION}` },
             body,
         })
 
@@ -179,10 +189,10 @@ describe("order requests", () => {
             "invalid-phone",
         ],
     ])("answers 400 to %s without keeping an order", async (_, body, code) => {
-        const before = orders.all().length
+        const before = orders.ofSession(SESSION, 0, 100).orders.length
         const response = await post(body)
         expect(response.status).toBe(400)
         expect(await response.json()).toMatchObject({ code })
-        expect(orders.all()).toHaveLength(before)
+        expect(orders.ofSession(SESSION, 0, 100).orders).toHaveLength(before)
     })
 })

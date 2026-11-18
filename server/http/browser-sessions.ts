@@ -1,21 +1,17 @@
 const COOKIE = "shop_session"
+const SESSION_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
 
 export class BrowserSessions {
-    private readonly references = new Map<string, Set<string>>()
-
-    remember(request: Bun.BunRequest, reference: string) {
-        const session = request.cookies.get(COOKIE) ?? this.open(request)
-        const owned = this.references.get(session) ?? new Set<string>()
-        owned.add(reference)
-        this.references.set(session, owned)
-    }
-
-    owns(request: Bun.BunRequest, reference: string): boolean {
+    current(request: Bun.BunRequest): string | undefined {
         const session = request.cookies.get(COOKIE)
-        return session !== null && this.references.get(session)?.has(reference) === true
+        return session !== null && SESSION_ID.test(session) ? session : undefined
     }
 
-    private open(request: Bun.BunRequest): string {
+    open(request: Bun.BunRequest): string {
+        const existing = this.current(request)
+        if (existing) {
+            return existing
+        }
         const session = crypto.randomUUID()
         request.cookies.set(COOKIE, session, {
             httpOnly: true,

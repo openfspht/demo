@@ -13,7 +13,7 @@
 TiMache is a small shop that takes payments through OpenFSP: a product catalogue, a checkout that creates payments and a
 receiver for signed webhook events. It integrates through the published client SDK,
 [`@openfsp/sdk`](https://www.npmjs.com/package/@openfsp/sdk), and works with any server exposing the OpenFSP API. Orders
-are held in memory and are discarded when the application restarts.
+are held in memory, at most 10,000 for seven days, and are discarded when the application restarts.
 
 A public instance runs at [demo.openfsp.org](https://demo.openfsp.org), connected to simulated payment services.
 
