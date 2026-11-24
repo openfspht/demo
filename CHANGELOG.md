@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.2](https://github.com/openfspht/demo/compare/v0.3.1...v0.3.2) (2026-11-24)
+
+
+### Bug Fixes
+
+* show the order when a checkout returns no payment page ([d286641](https://github.com/openfspht/demo/commit/d286641f003d4e551218fab27ee939e4278052d8))
+
 ## [0.3.1](https://github.com/openfspht/demo/compare/v0.3.0...v0.3.1) (2026-11-21)
 
 
