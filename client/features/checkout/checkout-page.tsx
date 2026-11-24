@@ -62,7 +62,7 @@ export function CheckoutPage() {
     if (catalog.isPending) {
         return null
     }
-    if (lines.length === 0 && !pay.isSuccess) {
+    if (lines.length === 0 && pay.isIdle) {
         return <Navigate replace to="/cart" />
     }
     return (
